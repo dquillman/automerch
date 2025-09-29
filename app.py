@@ -466,3 +466,4 @@ def etsy_update_price(sku: str = Form(...)):
                 session.add(RunLog(job="etsy_update_price", status="error", message=str(e)))
                 session.commit()
     return RedirectResponse(url="/products", status_code=303)
+
