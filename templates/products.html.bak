@@ -1,4 +1,4 @@
-﻿{% extends 'base.html' %}
+{% extends 'base.html' %}
 {% block content %}
   <h1>Products</h1>
   {% if products %}
@@ -49,10 +49,6 @@
                 <button type="submit">Create in Printful</button>
               </form>
             </details>
-            <form method="post" action="/api/products/etsy" style="display:inline;margin-right:6px">
-              <input type="hidden" name="sku" value="{{ p.sku }}" />
-              <button type="submit">List Draft</button>
-            </form>
             <form method="post" action="/api/products/delete" style="display:inline">
               <input type="hidden" name="sku" value="{{ p.sku }}" />
               <button type="submit">Delete</button>
@@ -81,6 +77,7 @@
     <button type="submit">Add</button>
   </form>
 {% endblock %}
+
 
 
 

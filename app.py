@@ -11,7 +11,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlmodel import select
 
 from db import init_db, get_session
-from models import Product, RunLog`nfrom version import get_version
+from models import Product, RunLog, ResearchSnapshot
+from version import get_version
+from research import run_research
 
 BASE_DIR = Path(__file__).parent
 MEDIA_DIR = BASE_DIR / "media"
@@ -21,7 +23,8 @@ MEDIA_PRODUCTS.mkdir(parents=True, exist_ok=True)
 app = FastAPI(title="AutoMerch")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
-templates = Jinja2Templates(directory="templates")`ntemplates.env.globals["APP_VERSION"] = get_version()
+templates = Jinja2Templates(directory="templates")
+templates.env.globals["APP_VERSION"] = get_version()
 scheduler = BackgroundScheduler()
 
 
@@ -81,6 +84,174 @@ def add_product(
         session.add(obj)
         session.commit()
     return RedirectResponse(url="/products", status_code=303)
+
+
+@app.get("/research")
+def research_page(request: Request, q: str | None = None, limit: int = 50):
+    data = None
+    err = None
+    if q:
+        try:
+            data = run_research(q, limit=limit)
+        except Exception as e:
+            err = str(e)
+    return templates.TemplateResponse(
+        "research.html",
+        {"request": request, "title": "Research", "q": q or "", "limit": limit, "data": data, "err": err},
+    )
+
+
+@app.get("/api/research")
+def research_api(q: str, limit: int = 50):
+    return run_research(q, limit=limit)
+
+
+def _slugify(value: str) -> str:
+    value = (value or "").lower()
+    keep = []
+    for ch in value:
+        if ch.isalnum():
+            keep.append(ch)
+        elif ch in [' ', '-', '_']:
+            keep.append('-')
+        else:
+            keep.append('')
+    slug = ''.join(keep)
+    while '--' in slug:
+        slug = slug.replace('--', '-')
+    slug = slug.strip('-')
+    return slug or 'design'
+
+
+@app.post("/api/research/import_blueprints")
+def import_blueprints(
+    q: str = Form(...),
+    limit: int = Form(50),
+    price_override: str | None = Form(None),
+    blueprints_json: str = Form(...),
+    idx: list[str] = Form(default_factory=list),
+):
+    import json
+    from uuid import uuid4
+
+    try:
+        blueprints = json.loads(blueprints_json) if blueprints_json else []
+    except Exception:
+        blueprints = []
+    selected = []
+    for s in idx:
+        try:
+            i = int(s)
+            if 0 <= i < len(blueprints):
+                selected.append((i, blueprints[i]))
+        except Exception:
+            continue
+    # Determine price to set
+    price_val = None
+    if price_override:
+        try:
+            price_val = float(price_override)
+        except ValueError:
+            price_val = None
+
+    created = 0
+    with get_session() as session:
+        for i, bp in selected:
+            name = str(bp.get("name") or bp.get("on_art_text") or f"{q} design {i}").strip()
+            sku_base = _slugify(f"{q}-{name}")[:40]
+            # ensure uniqueness by suffix
+            sku = sku_base
+            suffix_n = 0
+            while session.get(Product, sku) is not None:
+                suffix_n += 1
+                sku = f"{sku_base}-{suffix_n}"
+
+            # Compose description
+            desc_parts = []
+            if bp.get("on_art_text"):
+                desc_parts.append(f"On-art: \"{bp.get('on_art_text')}\"")
+            if bp.get("visuals"):
+                desc_parts.append("Visuals: " + ", ".join([str(v) for v in bp.get("visuals")]))
+            if bp.get("style"):
+                desc_parts.append("Style: " + str(bp.get("style")))
+            if bp.get("target_audience"):
+                desc_parts.append("Audience: " + str(bp.get("target_audience")))
+            if bp.get("notes"):
+                desc_parts.append("Notes: " + str(bp.get("notes")))
+            description = "; ".join(desc_parts)[:45000]
+
+            obj = Product(sku=sku, name=name[:255], description=description)
+            if price_val is not None:
+                obj.price = price_val
+            session.add(obj)
+            created += 1
+        session.commit()
+
+    with get_session() as session:
+        session.add(RunLog(job="import_blueprints", status="ok", message=f"{created} created for '{q}'"))
+        session.commit()
+
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.get("/api/research/export.json")
+def research_export_json(q: str, limit: int = 50):
+    return run_research(q, limit=limit)
+
+
+@app.get("/api/research/export.csv")
+def research_export_csv(q: str, limit: int = 50):
+    import csv
+    from io import StringIO
+    data = run_research(q, limit=limit)
+    blueprints = (data.get("llm") or {}).get("design_blueprints") or []
+    headers = [
+        "name","on_art_text","visuals","style","colors","print_area","target_audience","primary_tags","notes"
+    ]
+    sio = StringIO()
+    w = csv.DictWriter(sio, fieldnames=headers)
+    w.writeheader()
+    for bp in blueprints:
+        row = {k: bp.get(k) for k in headers}
+        # Flatten lists
+        for key in ("visuals","colors","primary_tags"):
+            if isinstance(row.get(key), list):
+                row[key] = ", ".join([str(x) for x in row[key]])
+        w.writerow(row)
+    from fastapi.responses import Response
+    return Response(content=sio.getvalue(), media_type="text/csv")
+
+
+@app.post("/api/research/snapshot")
+def research_snapshot(q: str = Form(...), limit: int = Form(50)):
+    import json
+    data = run_research(q, limit=limit)
+    with get_session() as s:
+        snap = ResearchSnapshot(
+            keywords=q,
+            limit=limit,
+            metrics_json=json.dumps(data.get("metrics") or {}),
+            llm_json=json.dumps(data.get("llm") or {}),
+        )
+        s.add(snap)
+        s.add(RunLog(job="research_snapshot", status="ok", message=f"{q} (limit {limit})"))
+        s.commit()
+    return RedirectResponse(url="/research/snapshots", status_code=303)
+
+
+@app.get("/research/snapshots")
+def research_snapshots_page(request: Request, q: str | None = None):
+    with get_session() as s:
+        from sqlmodel import desc, select as sql_select
+        stmt = sql_select(ResearchSnapshot)
+        if q:
+            stmt = stmt.where(ResearchSnapshot.keywords.like(f"%{q}%"))
+        stmt = stmt.order_by(desc(ResearchSnapshot.created_at)).limit(200)
+        rows = s.exec(stmt).all()
+    return templates.TemplateResponse(
+        "research_snapshots.html",
+        {"request": request, "title": "Research Snapshots", "rows": rows, "q": q or ""},
+    )
 
 
 @app.post("/api/products/update")
@@ -521,3 +692,7 @@ from fastapi.responses import HTMLResponse
 @app.exception_handler(404)
 async def not_found(request: Request, exc):
     return HTMLResponse(f"<html><body><h1>404 Not Found</h1><p>{request.url.path}</p></body></html>", status_code=404)
+
+
+
+

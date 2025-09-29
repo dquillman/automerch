@@ -114,3 +114,34 @@ def update_listing_price(listing_id: str, price: float, currency: str = "USD", q
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy inventory error {r.status_code}: {r.text}")
     return True
+
+
+def search_listings(keywords: str, limit: int = 50, offset: int = 0, sort_on: str = "score") -> list[dict]:
+    """Search active Etsy listings for given keywords.
+
+    Note: Etsy API may change; this uses the public v3 application listings search.
+    """
+    if DRY_RUN:
+        # Return a small mock when dry-run to allow downstream logic to work.
+        return [
+            {"listing_id": 1, "title": f"{keywords} Funny Gift Mug", "price": {"amount": 1599, "currency_code": "USD"}, "tags": ["mug", "funny", "gift"]},
+            {"listing_id": 2, "title": f"{keywords} Minimalist T-Shirt", "price": {"amount": 2199, "currency_code": "USD"}, "tags": ["t-shirt", "minimal", "unisex"]},
+        ]
+    params = {
+        "keywords": keywords,
+        "limit": limit,
+        "offset": offset,
+        "sort_on": sort_on,
+        # "category": category,  # optionally add category filtering
+    }
+    url = f"{BASE_URL}/listings/active"
+    r = requests.get(url, headers=_headers(), params=params, timeout=30)
+    if r.status_code >= 400:
+        raise RuntimeError(f"Etsy search error {r.status_code}: {r.text}")
+    data = r.json()
+    # Some responses return { "results": [...] }, others top-level list
+    if isinstance(data, dict) and "results" in data:
+        return data["results"] or []
+    if isinstance(data, list):
+        return data
+    return []

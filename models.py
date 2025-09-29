@@ -1,4 +1,4 @@
-﻿from datetime import datetime
+from datetime import datetime
 from typing import Optional
 from sqlmodel import SQLModel, Field
 
@@ -13,6 +13,8 @@ class Product(SQLModel, table=True):
     variant_id: Optional[int] = None  # Printful catalog variant id
     printful_variant_id: Optional[str] = None
     etsy_listing_id: Optional[str] = None
+    quantity: Optional[int] = None
+    printful_file_id: Optional[int] = None
 
 
 class RunLog(SQLModel, table=True):
@@ -29,3 +31,12 @@ class OAuthToken(SQLModel, table=True):
     access_token: str
     refresh_token: Optional[str] = None
     expires_at: Optional[datetime] = None
+
+
+class ResearchSnapshot(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    keywords: str
+    limit: int = Field(default=50)
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    metrics_json: Optional[str] = None
+    llm_json: Optional[str] = None

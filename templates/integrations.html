@@ -1,4 +1,4 @@
-﻿{% extends ' + "'base.html'" + ' %}
+﻿{% extends 'base.html' %}
 {% block content %}
   <h1>Integrations</h1>
   <h2>Etsy</h2>
@@ -12,3 +12,4 @@
   <p>PRINTFUL_API_KEY: {{ 'set' if printful_key_set else 'not set' }}</p>
   <form method="post" action="/auth/printful/test"><button type="submit">Test Printful API</button></form>
 {% endblock %}
+

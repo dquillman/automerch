@@ -1,7 +1,7 @@
 ﻿import os
 from sqlmodel import SQLModel, create_engine, Session
 
-DB_URL = os.getenv(''AUTOMERCH_DB'', ''sqlite:///automerch.db'')
+DB_URL = os.getenv("AUTOMERCH_DB", "sqlite:///automerch.db")
 engine = create_engine(DB_URL, echo=False)
 
 
@@ -34,6 +34,10 @@ def migrate_db():
                 to_add.append("ALTER TABLE product ADD COLUMN printful_variant_id VARCHAR")
             if 'etsy_listing_id' not in cols:
                 to_add.append("ALTER TABLE product ADD COLUMN etsy_listing_id VARCHAR")
+            if 'quantity' not in cols:
+                to_add.append("ALTER TABLE product ADD COLUMN quantity INTEGER")
+            if 'printful_file_id' not in cols:
+                to_add.append("ALTER TABLE product ADD COLUMN printful_file_id INTEGER")
             for stmt in to_add:
                 conn.exec_driver_sql(stmt)
         except Exception:
