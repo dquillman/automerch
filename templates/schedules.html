@@ -1,0 +1,42 @@
+﻿{% extends ' + "'base.html'" + ' %}
+{% block content %}
+  <h1>Schedules</h1>
+  <h2>Create Schedule</h2>
+  <form method="post" action="/api/schedules">
+    <label>Job: 
+      <select name="job">
+        <option value="list_to_etsy">List to Etsy</option>
+        <option value="pull_metrics">Pull Metrics</option>
+        <option value="prune_scale">Prune/Scale</option>
+        <option value="weekly_report">Weekly Report</option>
+        <option value="intake_to_assets">Intake to Assets</option>
+      </select>
+    </label>
+    <label>Every (minutes): <input type="number" min="1" name="minutes" value="60" /></label>
+    <button type="submit">Add</button>
+  </form>
+  <h2>Existing Schedules</h2>
+  {% if jobs %}
+  <table>
+    <thead><tr><th>ID</th><th>Job</th><th>Trigger</th><th>Next Run</th><th>Actions</th></tr></thead>
+    <tbody>
+    {% for j in jobs %}
+      <tr>
+        <td>{{ j.id }}</td>
+        <td>{{ j.name }}</td>
+        <td>{{ j.trigger }}</td>
+        <td>{{ j.next_run_time }}</td>
+        <td>
+          <form method="post" action="/api/schedules/delete" style="display:inline">
+            <input type="hidden" name="id" value="{{ j.id }}" />
+            <button type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No schedules yet.</p>
+  {% endif %}
+{% endblock %}
