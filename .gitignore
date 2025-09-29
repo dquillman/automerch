@@ -37,3 +37,6 @@ Thumbs.db
 # Project duplicates to exclude
 AutoMerch_Starter/
 automerch_pro/
+
+# Local media uploads
+media/

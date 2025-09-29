@@ -1,6 +1,9 @@
 ﻿import importlib
 import os
-from fastapi import FastAPI, Request, Form
+from pathlib import Path
+from typing import Optional
+
+from fastapi import FastAPI, Request, Form, UploadFile, File
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -10,8 +13,14 @@ from sqlmodel import select
 from db import init_db, get_session
 from models import Product, RunLog
 
+BASE_DIR = Path(__file__).parent
+MEDIA_DIR = BASE_DIR / "media"
+MEDIA_PRODUCTS = MEDIA_DIR / "products"
+MEDIA_PRODUCTS.mkdir(parents=True, exist_ok=True)
+
 app = FastAPI(title="AutoMerch")
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 templates = Jinja2Templates(directory="templates")
 scheduler = BackgroundScheduler()
 
@@ -31,11 +40,27 @@ def home(request: Request):
 def products_page(request: Request):
     with get_session() as session:
         products = session.exec(select(Product)).all()
-    return templates.TemplateResponse("products.html", {"request": request, "products": products, "title": "Products"})
+    # Curated Printful variants (examples)
+    printful_variants = [
+        {"id": 4011, "label": "4011 - Tee (example)"},
+        {"id": 4012, "label": "4012 - Tee (example)"},
+        {"id": 4013, "label": "4013 - Tee (example)"},
+    ]
+    return templates.TemplateResponse(
+        "products.html",
+        {"request": request, "products": products, "title": "Products", "printful_variants": printful_variants},
+    )
 
 
 @app.post("/api/products")
-def add_product(sku: str = Form(...), name: str = Form(None), price: str = Form(None), description: str = Form(None), variant_id: str = Form(None), thumbnail_url: str = Form(None)):
+def add_product(
+    sku: str = Form(...),
+    name: Optional[str] = Form(None),
+    price: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    variant_id: Optional[str] = Form(None),
+    thumbnail_url: Optional[str] = Form(None),
+):
     with get_session() as session:
         obj = session.get(Product, sku) or Product(sku=sku)
         if name:
@@ -60,7 +85,14 @@ def add_product(sku: str = Form(...), name: str = Form(None), price: str = Form(
 
 
 @app.post("/api/products/update")
-def update_product(sku: str = Form(...), name: str = Form(None), price: str = Form(None), description: str = Form(None), variant_id: str = Form(None), thumbnail_url: str = Form(None)):
+def update_product(
+    sku: str = Form(...),
+    name: Optional[str] = Form(None),
+    price: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    variant_id: Optional[str] = Form(None),
+    thumbnail_url: Optional[str] = Form(None),
+):
     with get_session() as session:
         obj = session.get(Product, sku)
         if obj is not None:
@@ -95,9 +127,24 @@ def delete_product(sku: str = Form(...)):
     return RedirectResponse(url="/products", status_code=303)
 
 
+@app.post("/api/products/upload_image")
+def upload_product_image(sku: str = Form(...), image: UploadFile = File(...)):
+    suffix = Path(image.filename).suffix or ".jpg"
+    path = MEDIA_PRODUCTS / f"{sku}{suffix}"
+    with open(path, "wb") as f:
+        f.write(image.file.read())
+    public_url = f"/media/products/{path.name}"
+    with get_session() as session:
+        obj = session.get(Product, sku) or Product(sku=sku)
+        obj.thumbnail_url = public_url
+        session.add(obj)
+        session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
 @app.post("/api/products/etsy")
 def product_to_etsy(sku: str = Form(...)):
-    from etsy_client import create_listing_draft
+    from etsy_client import create_listing_draft, publish_listing, upload_listing_image_from_url, upload_listing_image_from_file
     with get_session() as session:
         obj = session.get(Product, sku)
         if obj is None:
@@ -116,6 +163,14 @@ def product_to_etsy(sku: str = Form(...)):
         try:
             listing_id = create_listing_draft(payload)
             obj.etsy_listing_id = listing_id
+            # Try to upload image if present
+            if obj.thumbnail_url:
+                if obj.thumbnail_url.startswith("http://") or obj.thumbnail_url.startswith("https://"):
+                    upload_listing_image_from_url(listing_id, obj.thumbnail_url)
+                elif obj.thumbnail_url.startswith("/media/"):
+                    local_path = BASE_DIR / obj.thumbnail_url.lstrip("/")
+                    if local_path.exists():
+                        upload_listing_image_from_file(listing_id, str(local_path))
             session.add(obj)
             session.commit()
         except Exception as e:
@@ -123,6 +178,22 @@ def product_to_etsy(sku: str = Form(...)):
         finally:
             session.add(RunLog(job="etsy_list", status=status, message=message))
             session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/etsy_publish")
+def product_etsy_publish(sku: str = Form(...)):
+    from etsy_client import publish_listing
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj and obj.etsy_listing_id:
+            try:
+                publish_listing(obj.etsy_listing_id)
+                session.add(RunLog(job="etsy_publish", status="ok"))
+                session.commit()
+            except Exception as e:
+                session.add(RunLog(job="etsy_publish", status="error", message=str(e)))
+                session.commit()
     return RedirectResponse(url="/products", status_code=303)
 
 

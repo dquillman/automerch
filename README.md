@@ -90,3 +90,10 @@ MIT — see LICENSE.
 - In `/products`, edit fields (variant_id, thumbnail_url) and use:
   - “List to Etsy (draft)” to create a draft listing and store `etsy_listing_id`.
   - “Create in Printful” to create a product and store `printful_variant_id`.
+## Images and Uploads
+- Upload a product image via the edit panel on `/products`. The file is saved under `/media/products` and the URL is stored in `thumbnail_url`.
+- Note: External APIs (Etsy/Printful) fetch media from accessible URLs. Local `/media` works for local testing; for production, host images on a public URL or upload directly via each API.
+
+## Etsy Listing Management
+- “List to Etsy (draft)” creates a draft listing and attempts to upload the product image.
+- “Publish Etsy Listing” sets the listing state to `active`.
