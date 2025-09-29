@@ -148,3 +148,41 @@ def delete_schedule(id: str = Form(...)):
     except Exception:
         pass
     return RedirectResponse(url="/schedules", status_code=303)
+
+@app.post("/api/products")
+def add_product(sku: str = Form(...), name: str = Form(None), price: str = Form(None), description: str = Form(None)):
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj is None:
+            obj = Product(sku=sku)
+        if name:
+            obj.name = name
+        if price:
+            try:
+                obj.price = float(price)
+            except ValueError:
+                pass
+        if description:
+            obj.description = description
+        session.add(obj)
+        session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/update")
+def update_product(sku: str = Form(...), name: str = Form(None), price: str = Form(None), description: str = Form(None)):
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj is not None:
+            if name is not None:
+                obj.name = name
+            if price is not None and price != "":
+                try:
+                    obj.price = float(price)
+                except ValueError:
+                    pass
+            if description is not None:
+                obj.description = description
+            session.add(obj)
+            session.commit()
+    return RedirectResponse(url="/products", status_code=303)
