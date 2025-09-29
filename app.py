@@ -11,7 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlmodel import select
 
 from db import init_db, get_session
-from models import Product, RunLog
+from models import Product, RunLog`nfrom version import get_version
 
 BASE_DIR = Path(__file__).parent
 MEDIA_DIR = BASE_DIR / "media"
@@ -21,7 +21,7 @@ MEDIA_PRODUCTS.mkdir(parents=True, exist_ok=True)
 app = FastAPI(title="AutoMerch")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
-templates = Jinja2Templates(directory="templates")
+templates = Jinja2Templates(directory="templates")`ntemplates.env.globals["APP_VERSION"] = get_version()
 scheduler = BackgroundScheduler()
 
 
@@ -513,3 +513,4 @@ def catalog(request: Request, q: str | None = None, page: int = 1, page_size: in
         products = session.exec(stmt).all()
     pager = {"page": page, "page_size": page_size, "total": total}
     return templates.TemplateResponse("catalog.html", {"request": request, "products": products, "title": "Catalog", "q": q, "pager": pager})
+
