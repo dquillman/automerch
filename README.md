@@ -80,3 +80,13 @@ MIT — see LICENSE.
 - Build and run: `docker compose up --build`
 - Environment: copy `.env.sample` to `.env` and fill values.
 - GHCR: Images are published to `ghcr.io/dquillman/automerch` on pushes to `main`.
+## Etsy App Setup
+- Create an app at Etsy Developers and note Client ID/Secret.
+- Redirect URI: `http://localhost:8000/auth/etsy/callback` (or your deployed URL).
+- Add to `.env`: `ETSY_CLIENT_ID`, `ETSY_CLIENT_SECRET`, optional `ETSY_REDIRECT_URI`.
+- Visit `/integrations` and click Connect Etsy. With `AUTOMERCH_DRY_RUN=true`, actions are safe.
+
+## Per-Product Actions
+- In `/products`, edit fields (variant_id, thumbnail_url) and use:
+  - “List to Etsy (draft)” to create a draft listing and store `etsy_listing_id`.
+  - “Create in Printful” to create a product and store `printful_variant_id`.

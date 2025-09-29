@@ -1,12 +1,44 @@
-﻿{% extends 'base.html' %}
+﻿{% extends ' + "'base.html'" + ' %}
 {% block content %}
   <h1>Products</h1>
   {% if products %}
   <table>
-    <thead><tr><th>SKU</th></tr></thead>
+    <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Etsy</th><th>Printful</th><th>Actions</th></tr></thead>
     <tbody>
       {% for p in products %}
-        <tr><td>{{ p.sku }}</td></tr>
+        <tr>
+          <td>{{ p.sku }}</td>
+          <td>{{ p.name or '' }}</td>
+          <td>{{ '%.2f' % p.price if p.price is not none else '' }}</td>
+          <td>{{ p.etsy_listing_id or '' }}</td>
+          <td>{{ p.printful_variant_id or '' }}</td>
+          <td>
+            <details>
+              <summary>Edit</summary>
+              <form method="post" action="/api/products/update">
+                <input type="hidden" name="sku" value="{{ p.sku }}" />
+                <input type="text" name="name" placeholder="Name" value="{{ p.name or '' }}" />
+                <input type="text" name="price" placeholder="Price" value="{{ p.price or '' }}" />
+                <input type="text" name="variant_id" placeholder="Printful variant id (e.g., 4011)" value="{{ p.variant_id or '' }}" />
+                <input type="text" name="thumbnail_url" placeholder="Thumbnail URL" value="{{ p.thumbnail_url or '' }}" />
+                <textarea name="description" placeholder="Description">{{ p.description or '' }}</textarea>
+                <button type="submit">Save</button>
+              </form>
+              <form method="post" action="/api/products/etsy" style="margin-top:6px">
+                <input type="hidden" name="sku" value="{{ p.sku }}" />
+                <button type="submit">List to Etsy (draft)</button>
+              </form>
+              <form method="post" action="/api/products/printful" style="margin-top:6px">
+                <input type="hidden" name="sku" value="{{ p.sku }}" />
+                <button type="submit">Create in Printful</button>
+              </form>
+            </details>
+            <form method="post" action="/api/products/delete" style="display:inline">
+              <input type="hidden" name="sku" value="{{ p.sku }}" />
+              <button type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
       {% endfor %}
     </tbody>
   </table>
@@ -16,6 +48,11 @@
   <h2>Add Product</h2>
   <form method="post" action="/api/products">
     <input type="text" name="sku" placeholder="SKU" required />
+    <input type="text" name="name" placeholder="Name" />
+    <input type="text" name="price" placeholder="Price" />
+    <input type="text" name="variant_id" placeholder="Printful variant id (e.g., 4011)" />
+    <input type="text" name="thumbnail_url" placeholder="Thumbnail URL" />
+    <textarea name="description" placeholder="Description"></textarea>
     <button type="submit">Add</button>
   </form>
 {% endblock %}

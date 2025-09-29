@@ -1,4 +1,5 @@
 ﻿import importlib
+import os
 from fastapi import FastAPI, Request, Form
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
@@ -18,6 +19,7 @@ scheduler = BackgroundScheduler()
 @app.on_event("startup")
 def on_startup():
     init_db()
+    scheduler.start()
 
 
 @app.get("/")
@@ -33,10 +35,121 @@ def products_page(request: Request):
 
 
 @app.post("/api/products")
-def add_product(sku: str = Form(...)):
+def add_product(sku: str = Form(...), name: str = Form(None), price: str = Form(None), description: str = Form(None), variant_id: str = Form(None), thumbnail_url: str = Form(None)):
     with get_session() as session:
-        if session.get(Product, sku) is None:
-            session.add(Product(sku=sku))
+        obj = session.get(Product, sku) or Product(sku=sku)
+        if name:
+            obj.name = name
+        if price:
+            try:
+                obj.price = float(price)
+            except ValueError:
+                pass
+        if description:
+            obj.description = description
+        if variant_id:
+            try:
+                obj.variant_id = int(variant_id)
+            except ValueError:
+                pass
+        if thumbnail_url:
+            obj.thumbnail_url = thumbnail_url
+        session.add(obj)
+        session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/update")
+def update_product(sku: str = Form(...), name: str = Form(None), price: str = Form(None), description: str = Form(None), variant_id: str = Form(None), thumbnail_url: str = Form(None)):
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj is not None:
+            if name is not None:
+                obj.name = name
+            if price is not None and price != "":
+                try:
+                    obj.price = float(price)
+                except ValueError:
+                    pass
+            if description is not None:
+                obj.description = description
+            if variant_id is not None and variant_id != "":
+                try:
+                    obj.variant_id = int(variant_id)
+                except ValueError:
+                    pass
+            if thumbnail_url is not None:
+                obj.thumbnail_url = thumbnail_url
+            session.add(obj)
+            session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/delete")
+def delete_product(sku: str = Form(...)):
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj is not None:
+            session.delete(obj)
+            session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/etsy")
+def product_to_etsy(sku: str = Form(...)):
+    from etsy_client import create_listing_draft
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj is None:
+            return RedirectResponse(url="/products", status_code=303)
+        payload = {
+            "sku": obj.sku,
+            "title": obj.name or obj.sku,
+            "description": (obj.description or "")[:45000],
+            "price": obj.price or 19.99,
+            "taxonomy_id": 1125,
+            "who_made": "i_did",
+            "when_made": "made_to_order",
+            "is_supply": False,
+        }
+        status = "ok"; message = None
+        try:
+            listing_id = create_listing_draft(payload)
+            obj.etsy_listing_id = listing_id
+            session.add(obj)
+            session.commit()
+        except Exception as e:
+            status = "error"; message = str(e)
+        finally:
+            session.add(RunLog(job="etsy_list", status=status, message=message))
+            session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/printful")
+def product_to_printful(sku: str = Form(...)):
+    from printful_client import create_product
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj is None:
+            return RedirectResponse(url="/products", status_code=303)
+        payload = {
+            "sku": obj.sku,
+            "name": obj.name or obj.sku,
+            "price": obj.price or 19.99,
+            "thumbnail": obj.thumbnail_url,
+            "variant_id": obj.variant_id or 4011,
+        }
+        status = "ok"; message = None
+        try:
+            variant_id, assets = create_product(payload)
+            obj.printful_variant_id = variant_id
+            session.add(obj)
+            session.commit()
+        except Exception as e:
+            status = "error"; message = str(e)
+        finally:
+            session.add(RunLog(job="printful_create", status=status, message=message))
             session.commit()
     return RedirectResponse(url="/products", status_code=303)
 
@@ -87,24 +200,6 @@ def logs_page(request: Request):
     return templates.TemplateResponse("logs.html", {"request": request, "logs": logs, "title": "Logs"})
 
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
-
-@app.post("/api/products/delete")
-def delete_product(sku: str = Form(...)):
-    with get_session() as session:
-        obj = session.get(Product, sku)
-        if obj is not None:
-            session.delete(obj)
-            session.commit()
-    return RedirectResponse(url="/products", status_code=303)
-
-@app.on_event("startup")
-def start_scheduler():
-    scheduler.start()
-
-
 @app.get("/schedules")
 def schedules_page(request: Request):
     jobs = scheduler.get_jobs()
@@ -124,7 +219,6 @@ def add_schedule(job: str = Form(...), minutes: int = Form(...)):
     module_name = job_map.get(job)
     if module_name:
         job_id = f"{job}-" + str(uuid4())[:8]
-        # Import lazily to avoid keeping modules pinned
         def _runner():
             mod = __import__(module_name, fromlist=["run"])
             if hasattr(mod, "run"):
@@ -149,40 +243,75 @@ def delete_schedule(id: str = Form(...)):
         pass
     return RedirectResponse(url="/schedules", status_code=303)
 
-@app.post("/api/products")
-def add_product(sku: str = Form(...), name: str = Form(None), price: str = Form(None), description: str = Form(None)):
-    with get_session() as session:
-        obj = session.get(Product, sku)
-        if obj is None:
-            obj = Product(sku=sku)
-        if name:
-            obj.name = name
-        if price:
-            try:
-                obj.price = float(price)
-            except ValueError:
-                pass
-        if description:
-            obj.description = description
-        session.add(obj)
-        session.commit()
-    return RedirectResponse(url="/products", status_code=303)
+
+@app.get("/integrations")
+def integrations_page(request: Request):
+    from etsy_auth import get_access_token
+    etsy_connected = True if get_access_token() else False
+    printful_key_set = True if os.getenv("PRINTFUL_API_KEY") else False
+    return templates.TemplateResponse("integrations.html", {"request": request, "etsy_connected": etsy_connected, "printful_key_set": printful_key_set, "title": "Integrations"})
 
 
-@app.post("/api/products/update")
-def update_product(sku: str = Form(...), name: str = Form(None), price: str = Form(None), description: str = Form(None)):
-    with get_session() as session:
-        obj = session.get(Product, sku)
-        if obj is not None:
-            if name is not None:
-                obj.name = name
-            if price is not None and price != "":
-                try:
-                    obj.price = float(price)
-                except ValueError:
-                    pass
-            if description is not None:
-                obj.description = description
-            session.add(obj)
-            session.commit()
-    return RedirectResponse(url="/products", status_code=303)
+@app.post("/auth/etsy/login")
+def etsy_login():
+    from uuid import uuid4
+    from etsy_auth import etsy_auth_url
+    state = str(uuid4())
+    url = etsy_auth_url(state)
+    return RedirectResponse(url=url, status_code=303)
+
+
+@app.get("/auth/etsy/callback")
+def etsy_callback(code: str = None, state: str = None, error: str = None):
+    from etsy_auth import exchange_code
+    if error:
+        with get_session() as s:
+            s.add(RunLog(job="etsy_oauth", status="error", message=error))
+            s.commit()
+        return RedirectResponse(url="/integrations", status_code=303)
+    if code:
+        try:
+            exchange_code(code)
+            with get_session() as s:
+                s.add(RunLog(job="etsy_oauth", status="ok", message="connected"))
+                s.commit()
+        except Exception as e:
+            with get_session() as s:
+                s.add(RunLog(job="etsy_oauth", status="error", message=str(e)))
+                s.commit()
+    return RedirectResponse(url="/integrations", status_code=303)
+
+
+@app.post("/auth/etsy/test")
+def test_etsy():
+    from etsy_client import create_listing_draft
+    try:
+        create_listing_draft({"title": "AutoMerch Test", "description": "Test"})
+        with get_session() as s:
+            s.add(RunLog(job="etsy_test", status="ok"))
+            s.commit()
+    except Exception as e:
+        with get_session() as s:
+            s.add(RunLog(job="etsy_test", status="error", message=str(e)))
+            s.commit()
+    return RedirectResponse(url="/integrations", status_code=303)
+
+
+@app.post("/auth/printful/test")
+def test_printful():
+    from printful_client import get_store_metrics
+    try:
+        get_store_metrics()
+        with get_session() as s:
+            s.add(RunLog(job="printful_test", status="ok"))
+            s.commit()
+    except Exception as e:
+        with get_session() as s:
+            s.add(RunLog(job="printful_test", status="error", message=str(e)))
+            s.commit()
+    return RedirectResponse(url="/integrations", status_code=303)
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
