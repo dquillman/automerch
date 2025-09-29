@@ -97,3 +97,28 @@ MIT — see LICENSE.
 ## Etsy Listing Management
 - “List to Etsy (draft)” creates a draft listing and attempts to upload the product image.
 - “Publish Etsy Listing” sets the listing state to `active`.
+## S3 Bucket Policy (example)
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "PublicReadGetObject",
+      "Effect": "Allow",
+      "Principal": "*",
+      "Action": ["s3:GetObject"],
+      "Resource": ["arn:aws:s3:::YOUR_BUCKET_NAME/*"]
+    }
+  ]
+}
+
+## IAM Policy for Uploader (example)
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:PutObject", "s3:PutObjectAcl"],
+      "Resource": ["arn:aws:s3:::YOUR_BUCKET_NAME/*"]
+    }
+  ]
+}

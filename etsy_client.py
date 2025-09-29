@@ -93,3 +93,24 @@ def update_listing(listing_id: str, fields: dict) -> bool:
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy update error {r.status_code}: {r.text}")
     return True
+
+def update_listing_price(listing_id: str, price: float, currency: str = "USD", quantity: int = 999) -> bool:
+    if DRY_RUN:
+        return True
+    url = f"{BASE_URL}/listings/{listing_id}/inventory"
+    body = {
+        "products": [
+            {
+                "offerings": [
+                    {
+                        "price": {"amount": int(round(price * 100)), "currency_code": currency},
+                        "quantity": quantity
+                    }
+                ]
+            }
+        ]
+    }
+    r = requests.put(url, headers=_headers(), json=body, timeout=30)
+    if r.status_code >= 400:
+        raise RuntimeError(f"Etsy inventory error {r.status_code}: {r.text}")
+    return True

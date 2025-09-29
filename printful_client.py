@@ -29,15 +29,7 @@ def create_product(product: dict):
             "thumbnail": product.get("thumbnail"),
             "external_id": product.get("sku"),
         },
-        "sync_variants": [
-            {
-                "retail_price": str(product.get("price") or "19.99"),
-                "sku": product.get("sku"),
-                # A catalog variant id is required; placeholder 4011 used as example only
-                "variant_id": product.get("variant_id", 4011)
-            }
-        ],
-    }
+        "sync_variants": [\n            {\n                "retail_price": str(product.get("price") or "19.99"),\n                "sku": product.get("sku"),\n                "variant_id": product.get("variant_id", 4011),\n                "files": ([{"type": "preview", "url": product.get("thumbnail")} ] if product.get("thumbnail") else [])\n            }\n        ],\n    }
     r = requests.post(f"{BASE_URL}/store/products", headers=_headers(), json=payload, timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Printful error {r.status_code}: {r.text}")
@@ -55,3 +47,4 @@ def get_store_metrics():
         raise RuntimeError(f"Printful error {r.status_code}: {r.text}")
     data = r.json().get("result", {})
     return {"name": data.get("name"), "currency": data.get("currency")} 
+

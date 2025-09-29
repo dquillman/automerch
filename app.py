@@ -416,3 +416,53 @@ def test_printful():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+
+@app.post("/api/products/etsy_add_image_url")
+def etsy_add_image_url(sku: str = Form(...), url: str = Form(...)):
+    from etsy_client import upload_listing_image_from_url
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj and obj.etsy_listing_id and url:
+            try:
+                upload_listing_image_from_url(obj.etsy_listing_id, url)
+                session.add(RunLog(job="etsy_add_image_url", status="ok"))
+                session.commit()
+            except Exception as e:
+                session.add(RunLog(job="etsy_add_image_url", status="error", message=str(e)))
+                session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/etsy_add_image")
+def etsy_add_image(sku: str = Form(...), image: UploadFile = File(...)):
+    from etsy_client import upload_listing_image_from_file
+    local_path = MEDIA_PRODUCTS / f"{sku}-extra-{image.filename}"
+    with open(local_path, "wb") as f:
+        f.write(image.file.read())
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj and obj.etsy_listing_id:
+            try:
+                upload_listing_image_from_file(obj.etsy_listing_id, str(local_path))
+                session.add(RunLog(job="etsy_add_image_file", status="ok"))
+                session.commit()
+            except Exception as e:
+                session.add(RunLog(job="etsy_add_image_file", status="error", message=str(e)))
+                session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/etsy_update_price")
+def etsy_update_price(sku: str = Form(...)):
+    from etsy_client import update_listing_price
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj and obj.etsy_listing_id and obj.price is not None:
+            try:
+                update_listing_price(obj.etsy_listing_id, float(obj.price))
+                session.add(RunLog(job="etsy_update_price", status="ok"))
+                session.commit()
+            except Exception as e:
+                session.add(RunLog(job="etsy_update_price", status="error", message=str(e)))
+                session.commit()
+    return RedirectResponse(url="/products", status_code=303)

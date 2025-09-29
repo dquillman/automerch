@@ -37,7 +37,7 @@
               <form method="post" action="/api/products/etsy" style="margin-top:6px">
                 <input type="hidden" name="sku" value="{{ p.sku }}" />
                 <button type="submit">List to Etsy (draft)</button>
-              </form>
+              </form>\n              <form method="post" action="/api/products/etsy_update_price" style="margin-top:6px">\n                <input type="hidden" name="sku" value="{{ p.sku }}" />\n                <button type="submit">Update Etsy Price</button>\n              </form>\n              <form method="post" action="/api/products/etsy_add_image_url" style="margin-top:6px">\n                <input type="hidden" name="sku" value="{{ p.sku }}" />\n                <input type="text" name="url" placeholder="Additional image URL" />\n                <button type="submit">Add Etsy Image (URL)</button>\n              </form>\n              <form method="post" enctype="multipart/form-data" action="/api/products/etsy_add_image" style="margin-top:6px">\n                <input type="hidden" name="sku" value="{{ p.sku }}" />\n                <input type="file" name="image" accept="image/*" />\n                <button type="submit">Add Etsy Image (Upload)</button>\n              </form>
               {% if p.etsy_listing_id %}
               <form method="post" action="/api/products/etsy_publish" style="margin-top:6px">
                 <input type="hidden" name="sku" value="{{ p.sku }}" />
@@ -77,3 +77,4 @@
     <button type="submit">Add</button>
   </form>
 {% endblock %}
+
