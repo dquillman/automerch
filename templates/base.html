@@ -15,7 +15,7 @@
       <a href="/logs">Logs</a>
       <a href="/schedules">Schedules</a>
       <a href="/integrations">Integrations</a>
-      <span style="float:right;opacity:0.7">v{{ APP_VERSION }}</span>\n    </nav>
+      <span style="float:right;opacity:0.7">v{{ APP_VERSION }}</span>\n      <span class="badge">v{{ APP_VERSION }}</span></nav>
   </header>
   <main>
     {% block content %}{% endblock %}
@@ -23,5 +23,6 @@
   <script src="/static/script.js"></script>
 </body>
 </html>
+
 
 

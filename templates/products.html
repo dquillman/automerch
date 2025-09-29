@@ -1,8 +1,8 @@
-﻿{% extends ' + "'base.html'" + ' %}
+﻿{% extends 'base.html' %}
 {% block content %}
   <h1>Products</h1>
   {% if products %}
-  <table>
+  <div class="table-wrap">\n  <table>
     <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Etsy</th><th>Printful</th><th>Actions</th></tr></thead>
     <tbody>
       {% for p in products %}
@@ -57,7 +57,7 @@
         </tr>
       {% endfor %}
     </tbody>
-  </table>
+    </table>\n</div>
   {% else %}
     <p>No products yet.</p>
   {% endif %}
@@ -77,4 +77,6 @@
     <button type="submit">Add</button>
   </form>
 {% endblock %}
+
+
 
