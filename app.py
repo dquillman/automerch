@@ -496,3 +496,20 @@ def export_products_csv():
         w.writerow({k: d.get(k) for k in headers})
     from fastapi.responses import Response
     return Response(content=sio.getvalue(), media_type="text/csv")
+
+@app.get("/catalog")
+def catalog(request: Request, q: str | None = None, page: int = 1, page_size: int = 20):
+    q = q or request.query_params.get("q")
+    page = int(request.query_params.get("page", page))
+    page_size = max(1, min(100, int(request.query_params.get("page_size", page_size))))
+    with get_session() as session:
+        from sqlmodel import or_
+        stmt = select(Product)
+        if q:
+            like = f"%{q}%"
+            stmt = stmt.where(or_(Product.sku.like(like), Product.name.like(like)))
+        total = len(session.exec(stmt).all())
+        stmt = stmt.offset((page-1)*page_size).limit(page_size)
+        products = session.exec(stmt).all()
+    pager = {"page": page, "page_size": page_size, "total": total}
+    return templates.TemplateResponse("catalog.html", {"request": request, "products": products, "title": "Catalog", "q": q, "pager": pager})

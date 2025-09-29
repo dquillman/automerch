@@ -1,0 +1,38 @@
+﻿{% extends ' + "'base.html'" + ' %}
+{% block content %}
+  <h1>Catalog</h1>
+  <form method="get" action="/catalog" style="margin:8px 0">
+    <input type="text" name="q" value="{{ q or '' }}" placeholder="Search SKU or name" />
+    <button type="submit">Search</button>
+  </form>
+  {% if products %}
+  <table>
+    <thead><tr><th>Image</th><th>SKU</th><th>Name</th><th>Price</th><th>Qty</th><th>Etsy</th></tr></thead>
+    <tbody>
+      {% for p in products %}
+        <tr>
+          <td>{% if p.thumbnail_url %}<img src="{{ p.thumbnail_url }}" alt="thumb" style="width:48px;height:48px;object-fit:cover" />{% endif %}</td>
+          <td><a href="/products/{{ p.sku }}">{{ p.sku }}</a></td>
+          <td>{{ p.name or '' }}</td>
+          <td>{{ '%.2f' % p.price if p.price is not none else '' }}</td>
+          <td>{{ p.quantity if p.quantity is not none else '' }}</td>
+          <td>{% if p.etsy_listing_id %}<a href="https://www.etsy.com/listing/{{ p.etsy_listing_id }}" target="_blank">{{ p.etsy_listing_id }}</a>{% endif %}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% if pager %}
+  <div style="margin-top:10px">
+    <span>Page {{ pager.page }} of {{ (pager.total // pager.page_size) + (1 if pager.total % pager.page_size else 0) or 1 }}</span>
+    {% if pager.page > 1 %}
+      <a href="/catalog?q={{ q or '' }}&page={{ pager.page - 1 }}&page_size={{ pager.page_size }}">Prev</a>
+    {% endif %}
+    {% if pager.page * pager.page_size < pager.total %}
+      <a href="/catalog?q={{ q or '' }}&page={{ pager.page + 1 }}&page_size={{ pager.page_size }}">Next</a>
+    {% endif %}
+  </div>
+  {% endif %}
+  {% else %}
+    <p>No products found.</p>
+  {% endif %}
+{% endblock %}
