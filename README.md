@@ -1,4 +1,4 @@
-# AutoMerch
+﻿# AutoMerch
 
 A lightweight starter for automating print-on-demand merchandising workflows (listing creation, asset handling, scheduling). The current repo includes runnable stubs, a simple SQLite database, and a jobs folder you can extend.
 
@@ -56,10 +56,15 @@ Environment variables (via .env):
 - Open PRs against main. CI must pass.
 
 ## License
-MIT � see LICENSE.
+MIT — see LICENSE.
 
 
 ## Web Server
 - Run: uvicorn app:app --reload
 - Open: http://localhost:8000
+
+
+## Scheduler
+- Add schedules at /schedules to run jobs on an interval.
+- Jobs log to the Logs page after each run.
 
