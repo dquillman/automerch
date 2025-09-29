@@ -1,0 +1,21 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+  <h1>Products</h1>
+  {% if products %}
+  <table>
+    <thead><tr><th>SKU</th></tr></thead>
+    <tbody>
+      {% for p in products %}
+        <tr><td>{{ p.sku }}</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No products yet.</p>
+  {% endif %}
+  <h2>Add Product</h2>
+  <form method="post" action="/api/products">
+    <input type="text" name="sku" placeholder="SKU" required />
+    <button type="submit">Add</button>
+  </form>
+{% endblock %}

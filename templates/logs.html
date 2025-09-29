@@ -1,0 +1,21 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+  <h1>Logs</h1>
+  {% if logs %}
+  <table>
+    <thead><tr><th>Time</th><th>Job</th><th>Status</th><th>Message</th></tr></thead>
+    <tbody>
+      {% for r in logs %}
+        <tr>
+          <td>{{ r.created_at }}</td>
+          <td>{{ r.job }}</td>
+          <td>{{ r.status }}</td>
+          <td>{{ r.message }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>No logs yet.</p>
+  {% endif %}
+{% endblock %}
