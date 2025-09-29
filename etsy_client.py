@@ -1,14 +1,16 @@
 ﻿import os
 import requests
 
-ETSY_ACCESS_TOKEN = os.getenv("ETSY_ACCESS_TOKEN")
-ETSY_SHOP_ID = os.getenv("ETSY_SHOP_ID")
-DRY_RUN = os.getenv("AUTOMERCH_DRY_RUN", "true").lower() == "true"
-
-BASE_URL = "https://openapi.etsy.com/v3/application"
-
+from etsy_auth import get_access_token
 
 def _headers():
+    token = get_access_token()
+    if not token:
+        raise RuntimeError("No Etsy access token; connect via Integrations page or set ETSY_ACCESS_TOKEN")
+    return {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
     if not ETSY_ACCESS_TOKEN:
         raise RuntimeError("ETSY_ACCESS_TOKEN not set")
     return {
@@ -48,3 +50,4 @@ def create_listing_draft(product: dict) -> str:
     data = r.json()
     listing_id = str(data.get("listing_id") or data.get("data", {}).get("listing_id") or "")
     return listing_id or "LISTING-UNKNOWN"
+

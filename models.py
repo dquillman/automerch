@@ -17,3 +17,10 @@ class RunLog(SQLModel, table=True):
     status: str = Field(default="ok")
     message: Optional[str] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class OAuthToken(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    provider: str
+    access_token: str
+    refresh_token: Optional[str] = None
+    expires_at: Optional[datetime] = None

@@ -1,0 +1,34 @@
+﻿name: Protect Main
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pull-requests: read
+  repository-projects: read
+  administration: write
+
+jobs:
+  protect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            await github.rest.repos.updateBranchProtection({
+              owner,
+              repo,
+              branch: 'main',
+              required_status_checks: {
+                strict: true,
+                contexts: ['CI', 'Docker Publish']
+              },
+              enforce_admins: true,
+              required_pull_request_reviews: {
+                required_approving_review_count: 1
+              },
+              restrictions: null
+            });
