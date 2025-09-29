@@ -68,3 +68,15 @@ MIT — see LICENSE.
 - Add schedules at /schedules to run jobs on an interval.
 - Jobs log to the Logs page after each run.
 
+## Products
+- Fields: SKU, name, description, price. Add/update/delete from /products.
+
+## Real API Integrations
+- Etsy: Set `ETSY_ACCESS_TOKEN` and `ETSY_SHOP_ID`. In `jobs/list_to_etsy.py`, the draft listing uses `etsy_client.create_listing_draft`.
+- Printful: Set `PRINTFUL_API_KEY`. Jobs call `printful_client` functions.
+- Safety: `AUTOMERCH_DRY_RUN=true` prevents live API calls. Set `false` to enable.
+
+## Docker
+- Build and run: `docker compose up --build`
+- Environment: copy `.env.sample` to `.env` and fill values.
+- GHCR: Images are published to `ghcr.io/dquillman/automerch` on pushes to `main`.
