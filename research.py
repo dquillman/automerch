@@ -134,7 +134,7 @@ def _llm_chat_completion(prompt: str) -> str | None:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return None
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    model = os.getenv("OPENAI_MODEL", "gpt-5")
 
     # Try official SDK first; fall back to raw HTTP if not installed
     try:

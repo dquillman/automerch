@@ -6,7 +6,7 @@ def _chat(prompt: str) -> str | None:
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
         return None
-    model = os.getenv("OPENAI_MODEL", "gpt-4o-mini")
+    model = os.getenv("OPENAI_MODEL", "gpt-5")
     try:
         import openai  # type: ignore
         client = openai.OpenAI(api_key=api_key) if hasattr(openai, "OpenAI") else None
