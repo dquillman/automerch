@@ -122,3 +122,8 @@ MIT — see LICENSE.
     }
   ]
 }
+## Catalog
+- Browse `/catalog` to search and paginate products, with image previews and links.
+
+## Exports
+- `GET /api/export/products.json` and `GET /api/export/products.csv` for data export.
