@@ -127,3 +127,6 @@ MIT — see LICENSE.
 
 ## Exports
 - `GET /api/export/products.json` and `GET /api/export/products.csv` for data export.
+## Seeding Demo Data
+- Run `python manage.py seed` to create sample products.
+- Use `python manage.py seed --clear` to wipe products first.

@@ -1,10 +1,13 @@
-﻿{% extends 'base.html' %}
+﻿{% extends ' + "'base.html'" + ' %}
 {% block content %}
   <h1>Welcome to AutoMerch</h1>
-  <p>Automate your merchandising workflows.</p>
+  <p>Automate your merchandising workflows. Version v{{ APP_VERSION }}</p>
+  <h2>Quick Links</h2>
   <ul>
-    <li>View <a href="/products">Products</a></li>
-    <li>Run <a href="/jobs">Jobs</a></li>
-    <li>Check <a href="/logs">Logs</a></li>
+    <li><a href="/products">Manage Products</a></li>
+    <li><a href="/catalog">Catalog</a></li>
+    <li><a href="/jobs">Jobs</a> and <a href="/schedules">Schedules</a></li>
+    <li><a href="/integrations">Integrations</a></li>
+    <li><a href="/logs">Logs</a></li>
   </ul>
 {% endblock %}

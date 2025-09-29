@@ -13,3 +13,5 @@ python-multipart>=0.0.9
 ruff>=0.6
 black>=24.8
 pytest>=8.2
+
+typer>=0.12

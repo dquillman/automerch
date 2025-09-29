@@ -514,3 +514,10 @@ def catalog(request: Request, q: str | None = None, page: int = 1, page_size: in
     pager = {"page": page, "page_size": page_size, "total": total}
     return templates.TemplateResponse("catalog.html", {"request": request, "products": products, "title": "Catalog", "q": q, "pager": pager})
 
+
+from fastapi import Request
+from fastapi.responses import HTMLResponse
+
+@app.exception_handler(404)
+async def not_found(request: Request, exc):
+    return HTMLResponse(f"<html><body><h1>404 Not Found</h1><p>{request.url.path}</p></body></html>", status_code=404)
