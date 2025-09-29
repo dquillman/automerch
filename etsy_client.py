@@ -80,3 +80,16 @@ def _upload_listing_image_bytes(listing_id: str, data: bytes, file_name: str) ->
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy image upload error {r.status_code}: {r.text}")
     return True
+
+def update_listing(listing_id: str, fields: dict) -> bool:
+    """Update listing title/description; price usually needs inventory APIs."""
+    if os.getenv("AUTOMERCH_DRY_RUN", "true").lower() == "true":
+        return True
+    url = f"{BASE_URL}/listings/{listing_id}"
+    allowed = {k: fields[k] for k in ("title", "description", "who_made", "when_made", "is_supply") if k in fields and fields[k] is not None}
+    if not allowed:
+        return True
+    r = requests.patch(url, headers=_headers(), json=allowed, timeout=30)
+    if r.status_code >= 400:
+        raise RuntimeError(f"Etsy update error {r.status_code}: {r.text}")
+    return True

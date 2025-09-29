@@ -40,7 +40,6 @@ def home(request: Request):
 def products_page(request: Request):
     with get_session() as session:
         products = session.exec(select(Product)).all()
-    # Curated Printful variants (examples)
     printful_variants = [
         {"id": 4011, "label": "4011 - Tee (example)"},
         {"id": 4012, "label": "4012 - Tee (example)"},
@@ -134,6 +133,15 @@ def upload_product_image(sku: str = Form(...), image: UploadFile = File(...)):
     with open(path, "wb") as f:
         f.write(image.file.read())
     public_url = f"/media/products/{path.name}"
+    # If S3 is configured, upload and use S3 URL instead
+    try:
+        from s3_storage import is_configured as s3_is_configured, upload_file as s3_upload
+        if s3_is_configured():
+            prefix = os.getenv("S3_PREFIX", "products").strip("/")
+            key = f"{prefix}/{path.name}"
+            public_url = s3_upload(str(path), key)
+    except Exception:
+        pass
     with get_session() as session:
         obj = session.get(Product, sku) or Product(sku=sku)
         obj.thumbnail_url = public_url
@@ -193,6 +201,28 @@ def product_etsy_publish(sku: str = Form(...)):
                 session.commit()
             except Exception as e:
                 session.add(RunLog(job="etsy_publish", status="error", message=str(e)))
+                session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/etsy_update")
+def product_etsy_update(sku: str = Form(...)):
+    from etsy_client import update_listing
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj and obj.etsy_listing_id:
+            try:
+                update_listing(obj.etsy_listing_id, {
+                    "title": obj.name or obj.sku,
+                    "description": (obj.description or "")[:45000],
+                    "who_made": "i_did",
+                    "when_made": "made_to_order",
+                    "is_supply": False,
+                })
+                session.add(RunLog(job="etsy_update", status="ok"))
+                session.commit()
+            except Exception as e:
+                session.add(RunLog(job="etsy_update", status="error", message=str(e)))
                 session.commit()
     return RedirectResponse(url="/products", status_code=303)
 
