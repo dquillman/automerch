@@ -5,6 +5,10 @@ from sqlmodel import SQLModel, Field
 
 class Product(SQLModel, table=True):
     sku: str = Field(primary_key=True)
+    name: Optional[str] = None
+    description: Optional[str] = None
+    price: Optional[float] = None
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 
 class RunLog(SQLModel, table=True):
