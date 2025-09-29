@@ -88,3 +88,12 @@ def logs_page(request: Request):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("app:app", host="0.0.0.0", port=8000, reload=True)
+
+@app.post("/api/products/delete")
+def delete_product(sku: str = Form(...)):
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj is not None:
+            session.delete(obj)
+            session.commit()
+    return RedirectResponse(url="/products", status_code=303)
