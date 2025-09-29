@@ -467,3 +467,32 @@ def etsy_update_price(sku: str = Form(...)):
                 session.commit()
     return RedirectResponse(url="/products", status_code=303)
 
+
+from fastapi.middleware.cors import CORSMiddleware
+
+@app.get("/health")
+def health():
+    return {"ok": True}
+
+@app.get("/api/export/products.json")
+def export_products_json():
+    with get_session() as session:
+        rows = session.exec(select(Product)).all()
+    return [r.model_dump() for r in rows]
+
+
+@app.get("/api/export/products.csv")
+def export_products_csv():
+    import csv
+    from io import StringIO
+    with get_session() as session:
+        rows = session.exec(select(Product)).all()
+    headers = ["sku","name","description","price","variant_id","thumbnail_url","etsy_listing_id","printful_variant_id"]
+    sio = StringIO()
+    w = csv.DictWriter(sio, fieldnames=headers)
+    w.writeheader()
+    for r in rows:
+        d = r.model_dump()
+        w.writerow({k: d.get(k) for k in headers})
+    from fastapi.responses import Response
+    return Response(content=sio.getvalue(), media_type="text/csv")
