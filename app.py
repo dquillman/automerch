@@ -254,6 +254,143 @@ def research_snapshots_page(request: Request, q: str | None = None):
     )
 
 
+@app.get("/research/snapshots/diff")
+def research_snapshots_diff(request: Request, id: list[int] | None = None, id1: int | None = None, id2: int | None = None):
+    # Accept either two repeated id parameters (?id=1&id=2) or id1/id2
+    pair = []
+    if id and len(id) >= 2:
+        pair = id[:2]
+    elif id1 and id2:
+        pair = [id1, id2]
+    data = {"a": None, "b": None, "diff": None}
+    if len(pair) == 2:
+        with get_session() as s:
+            a = s.get(ResearchSnapshot, pair[0])
+            b = s.get(ResearchSnapshot, pair[1])
+        import json
+        def parse(j):
+            try:
+                return json.loads(j or '{}')
+            except Exception:
+                return {}
+        if a and b:
+            am = parse(a.metrics_json); bm = parse(b.metrics_json)
+            al = parse(a.llm_json); bl = parse(b.llm_json)
+            def to_set(lst):
+                return set([str(x).lower() for x in (lst or [])])
+            a_tags = to_set((al or {}).get('recommended_tags'))
+            b_tags = to_set((bl or {}).get('recommended_tags'))
+            a_bp = to_set([ (d.get('name') or d.get('on_art_text') or '') for d in (al or {}).get('design_blueprints', []) ])
+            b_bp = to_set([ (d.get('name') or d.get('on_art_text') or '') for d in (bl or {}).get('design_blueprints', []) ])
+            diff = {
+                "metrics": {
+                    "total_listings": {"a": am.get('total_listings'), "b": bm.get('total_listings')},
+                    "median": {"a": ((am.get('prices') or {}).get('median')), "b": ((bm.get('prices') or {}).get('median'))},
+                    "competition_score": {"a": am.get('competition_score'), "b": bm.get('competition_score')},
+                },
+                "tags": {
+                    "only_in_a": sorted(list(a_tags - b_tags)),
+                    "only_in_b": sorted(list(b_tags - a_tags)),
+                },
+                "blueprints": {
+                    "only_in_a": sorted(list(a_bp - b_bp)),
+                    "only_in_b": sorted(list(b_bp - a_bp)),
+                },
+            }
+            data = {"a": a, "b": b, "diff": diff}
+    return templates.TemplateResponse(
+        "research_diff.html",
+        {"request": request, "title": "Snapshot Diff", **data},
+    )
+
+
+# Bulk product actions
+from typing import List as _List
+
+
+@app.post("/api/products/bulk/etsy_draft")
+def bulk_etsy_draft(skus: _List[str] = Form(default_factory=list)):
+    from etsy_client import create_listing_draft
+    created = 0; skipped = 0; errors = 0
+    with get_session() as session:
+        for sku in skus or []:
+            obj = session.get(Product, sku)
+            if not obj:
+                skipped += 1; continue
+            if obj.etsy_listing_id:
+                skipped += 1; continue
+            try:
+                payload = {
+                    "sku": obj.sku,
+                    "title": obj.name or obj.sku,
+                    "description": (obj.description or "")[:45000],
+                    "price": obj.price or 19.99,
+                    "taxonomy_id": 1125,
+                }
+                obj.etsy_listing_id = create_listing_draft(payload)
+                session.add(obj)
+                session.commit()
+                created += 1
+            except Exception:
+                errors += 1
+        session.add(RunLog(job="bulk_etsy_draft", status="ok", message=f"{created} created, {skipped} skipped, {errors} errors"))
+        session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/bulk/etsy_publish")
+def bulk_etsy_publish(skus: _List[str] = Form(default_factory=list)):
+    from etsy_client import publish_listing
+    published = 0; skipped = 0; errors = 0
+    with get_session() as session:
+        for sku in skus or []:
+            obj = session.get(Product, sku)
+            if not (obj and obj.etsy_listing_id):
+                skipped += 1; continue
+            try:
+                publish_listing(obj.etsy_listing_id)
+                published += 1
+            except Exception:
+                errors += 1
+        session.add(RunLog(job="bulk_etsy_publish", status="ok", message=f"{published} published, {skipped} skipped, {errors} errors"))
+        session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/bulk/printful")
+def bulk_printful_create(skus: _List[str] = Form(default_factory=list)):
+    from printful_client import create_product
+    created = 0; skipped = 0; errors = 0
+    with get_session() as session:
+        for sku in skus or []:
+            obj = session.get(Product, sku)
+            if not obj:
+                skipped += 1; continue
+            try:
+                payload = {
+                    "sku": obj.sku,
+                    "name": obj.name or obj.sku,
+                    "price": obj.price or 19.99,
+                    "thumbnail": obj.thumbnail_url,
+                    "variant_id": obj.variant_id or 4011,
+                }
+                variant_id, _ = create_product(payload)
+                obj.printful_variant_id = variant_id
+                session.add(obj)
+                session.commit()
+                created += 1
+            except Exception:
+                errors += 1
+        session.add(RunLog(job="bulk_printful", status="ok", message=f"{created} created, {skipped} skipped, {errors} errors"))
+        session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.get("/version")
+def version():
+    return {"version": get_version()}
+
+
 @app.post("/api/products/update")
 def update_product(
     sku: str = Form(...),

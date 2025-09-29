@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Snapshot Diff</h2>
+
+{% if not a or not b %}
+  <p>Select two snapshots from <a href="/research/snapshots">Snapshots</a> to compare.</p>
+{% else %}
+  <div style="margin-bottom:8px;">
+    <strong>A:</strong> #{{ a.id }} — {{ a.keywords }} ({{ a.created_at }}) &nbsp; | &nbsp;
+    <strong>B:</strong> #{{ b.id }} — {{ b.keywords }} ({{ b.created_at }})
+  </div>
+
+  <h3>Metrics</h3>
+  <ul>
+    <li>Total listings: {{ diff.metrics.total_listings.a }} → {{ diff.metrics.total_listings.b }}</li>
+    <li>Median price: {{ diff.metrics.median.a }} → {{ diff.metrics.median.b }}</li>
+    <li>Competition score: {{ diff.metrics.competition_score.a }} → {{ diff.metrics.competition_score.b }}</li>
+  </ul>
+
+  <h3>Tags</h3>
+  <div style="display:flex; gap:24px;">
+    <div>
+      <strong>Only in A</strong>
+      <ul>
+        {% for t in diff.tags.only_in_a %}<li>{{ t }}</li>{% endfor %}
+      </ul>
+    </div>
+    <div>
+      <strong>Only in B</strong>
+      <ul>
+        {% for t in diff.tags.only_in_b %}<li>{{ t }}</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <h3>Blueprint Names</h3>
+  <div style="display:flex; gap:24px;">
+    <div>
+      <strong>Only in A</strong>
+      <ul>
+        {% for t in diff.blueprints.only_in_a %}<li>{{ t }}</li>{% endfor %}
+      </ul>
+    </div>
+    <div>
+      <strong>Only in B</strong>
+      <ul>
+        {% for t in diff.blueprints.only_in_b %}<li>{{ t }}</li>{% endfor %}
+      </ul>
+    </div>
+  </div>
+{% endif %}
+{% endblock %}
+

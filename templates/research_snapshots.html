@@ -10,9 +10,12 @@
   <span style="opacity:0.7;margin-left:8px;">Total: {{ rows|length }}</span>
   </form>
 
+<form method="get" action="/research/snapshots/diff">
 <table border="1" cellpadding="6" cellspacing="0">
   <thead>
     <tr>
+      <th>Select</th>
+      <th>ID</th>
       <th>When</th>
       <th>Keywords</th>
       <th>Limit</th>
@@ -22,6 +25,8 @@
   <tbody>
   {% for r in rows %}
     <tr>
+      <td><input type="checkbox" name="id" value="{{ r.id }}" /></td>
+      <td>#{{ r.id }}</td>
       <td>{{ r.created_at }}</td>
       <td>{{ r.keywords }}</td>
       <td>{{ r.limit }}</td>
@@ -36,5 +41,8 @@
   {% endfor %}
   </tbody>
 </table>
+<div style="margin-top:8px;">
+  <button type="submit">Diff selected (pick 2)</button>
+</div>
+</form>
 {% endblock %}
-

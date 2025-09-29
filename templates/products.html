@@ -2,12 +2,15 @@
 {% block content %}
   <h1>Products</h1>
   {% if products %}
+  <form method="post" action="/api/products/bulk/etsy_draft">
   <div class="table-wrap">\n  <table>
     <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Etsy</th><th>Printful</th><th>Actions</th></tr></thead>
     <tbody>
       {% for p in products %}
         <tr>
-          <td>{{ p.sku }}</td>
+          <td>
+            <label><input type="checkbox" name="skus" value="{{ p.sku }}" /> {{ p.sku }}</label>
+          </td>
           <td>{{ p.name or '' }}</td>
           <td>{{ '%.2f' % p.price if p.price is not none else '' }}</td>
           <td>{{ p.etsy_listing_id or '' }}</td>
@@ -62,6 +65,12 @@
       {% endfor %}
     </tbody>
     </table>\n</div>
+  <div style="margin:8px 0;">
+    <button type="submit">Bulk: Etsy Draft</button>
+    <button type="submit" formaction="/api/products/bulk/etsy_publish">Bulk: Etsy Publish</button>
+    <button type="submit" formaction="/api/products/bulk/printful">Bulk: Printful Create</button>
+  </div>
+  </form>
   {% else %}
     <p>No products yet.</p>
   {% endif %}
