@@ -1,0 +1,14 @@
+﻿{% extends 'base.html' %}
+{% block content %}
+  <h1>Jobs</h1>
+  <form method="post" action="/api/run_job">
+    <select name="job">
+      <option value="list_to_etsy">List to Etsy</option>
+      <option value="pull_metrics">Pull Metrics</option>
+      <option value="prune_scale">Prune/Scale</option>
+      <option value="weekly_report">Weekly Report</option>
+      <option value="intake_to_assets">Intake to Assets</option>
+    </select>
+    <button type="submit">Run</button>
+  </form>
+{% endblock %}
