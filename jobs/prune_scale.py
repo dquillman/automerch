@@ -1,2 +1,5 @@
+﻿from rules import POLICIES
+
 def run():
-    pass
+    # Apply placeholder scaling rules
+    print(f"Applying policies: {list(POLICIES.keys())}")

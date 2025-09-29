@@ -1,2 +1,3 @@
+﻿
 def run():
-    pass
+    print("Weekly report generated (stub)")
