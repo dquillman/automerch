@@ -37,6 +37,10 @@
                 <input type="file" name="image" accept="image/*" />
                 <button type="submit">Upload Image</button>
               </form>
+              <form method="post" action="/api/products/generate_copy" style="margin-top:6px">
+                <input type="hidden" name="sku" value="{{ p.sku }}" />
+                <button type="submit">Generate Copy (ChatGPT)</button>
+              </form>
               <form method="post" action="/api/products/etsy" style="margin-top:6px">
                 <input type="hidden" name="sku" value="{{ p.sku }}" />
                 <button type="submit">List to Etsy (draft)</button>

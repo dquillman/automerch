@@ -24,7 +24,8 @@ app = FastAPI(title="AutoMerch")
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/media", StaticFiles(directory=str(MEDIA_DIR)), name="media")
 templates = Jinja2Templates(directory="templates")
-templates.env.globals["APP_VERSION"] = get_version()
+# Ensure version reflects the file each render by using a callable
+templates.env.globals["VERSION"] = get_version
 scheduler = BackgroundScheduler()
 
 
@@ -461,10 +462,24 @@ def upload_product_image(sku: str = Form(...), image: UploadFile = File(...)):
 @app.post("/api/products/etsy")
 def product_to_etsy(sku: str = Form(...)):
     from etsy_client import create_listing_draft, publish_listing, upload_listing_image_from_url, upload_listing_image_from_file
+    from creative import generate_listing_text
     with get_session() as session:
         obj = session.get(Product, sku)
         if obj is None:
             return RedirectResponse(url="/products", status_code=303)
+        # Ensure we have LLM-generated copy when missing
+        if not (obj.name and obj.description):
+            title, tags, desc, sub = generate_listing_text({
+                "sku": obj.sku,
+                "name": obj.name,
+                "description": obj.description,
+            })
+            if not obj.name:
+                obj.name = title
+            if not obj.description:
+                obj.description = desc
+            session.add(obj)
+            session.commit()
         payload = {
             "sku": obj.sku,
             "title": obj.name or obj.sku,
@@ -494,6 +509,27 @@ def product_to_etsy(sku: str = Form(...)):
         finally:
             session.add(RunLog(job="etsy_list", status=status, message=message))
             session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/generate_copy")
+def generate_copy(sku: str = Form(...)):
+    from creative import generate_listing_text
+    with get_session() as session:
+        obj = session.get(Product, sku)
+        if obj is None:
+            return RedirectResponse(url="/products", status_code=303)
+        title, tags, desc, sub = generate_listing_text({
+            "sku": obj.sku,
+            "name": obj.name,
+            "description": obj.description,
+        })
+        obj.name = title
+        obj.description = desc
+        session.add(obj)
+        session.commit()
+        session.add(RunLog(job="generate_copy", status="ok", message=f"{sku}"))
+        session.commit()
     return RedirectResponse(url="/products", status_code=303)
 
 
