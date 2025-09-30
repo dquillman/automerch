@@ -612,6 +612,8 @@ def run_job(job: str = Form(...)):
         "prune_scale": "jobs.prune_scale",
         "weekly_report": "jobs.weekly_report",
         "intake_to_assets": "jobs.intake_to_assets",
+        "sync_prices": "jobs.sync_prices",
+        "sync_inventory": "jobs.sync_inventory",
     }
     module_name = job_map.get(job)
     status = "ok"

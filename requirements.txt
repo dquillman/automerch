@@ -16,3 +16,4 @@ black>=24.8
 pytest>=8.2
 
 typer>=0.12
+alembic>=1.13

@@ -7,6 +7,18 @@ engine = create_engine(DB_URL, echo=False)
 
 def init_db():
     from models import Product, RunLog, OAuthToken
+    # If ALEMBIC is preferred, allow env to control
+    if os.getenv("USE_ALEMBIC", "false").lower() == "true":
+        try:
+            from alembic import command
+            from alembic.config import Config
+            cfg = Config(str((os.path.dirname(__file__) or '.') + '/alembic.ini'))
+            if os.getenv("AUTOMERCH_DB"):
+                cfg.set_main_option("sqlalchemy.url", os.getenv("AUTOMERCH_DB"))
+            command.upgrade(cfg, 'head')
+            return
+        except Exception:
+            pass
     SQLModel.metadata.create_all(engine)
     migrate_db()
 

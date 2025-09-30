@@ -1,5 +1,6 @@
 ﻿import os
 import requests
+from http import request as http_request
 
 PRINTFUL_API_KEY = os.getenv("PRINTFUL_API_KEY")
 DRY_RUN = os.getenv("AUTOMERCH_DRY_RUN", "true").lower() == "true"
@@ -30,7 +31,7 @@ def create_product(product: dict):
             "external_id": product.get("sku"),
         },
         "sync_variants": [\n            {\n                "retail_price": str(product.get("price") or "19.99"),\n                "sku": product.get("sku"),\n                "variant_id": product.get("variant_id", 4011),\n                "files": ([{"type": "preview", "url": product.get("thumbnail")} ] if product.get("thumbnail") else [])\n            }\n        ],\n    }
-    r = requests.post(f"{BASE_URL}/store/products", headers=_headers(), json=payload, timeout=30)
+    r = http_request("POST", f"{BASE_URL}/store/products", headers=_headers(), json=payload, timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Printful error {r.status_code}: {r.text}")
     data = r.json().get("result", {})
@@ -42,7 +43,7 @@ def create_product(product: dict):
 def get_store_metrics():
     if DRY_RUN:
         return {"orders": 0, "revenue": 0.0}
-    r = requests.get(f"{BASE_URL}/store", headers=_headers(), timeout=30)
+    r = http_request("GET", f"{BASE_URL}/store", headers=_headers(), timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Printful error {r.status_code}: {r.text}")
     data = r.json().get("result", {})

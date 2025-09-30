@@ -1,5 +1,6 @@
 ﻿import os
 import requests
+from http import request as http_request
 from pathlib import Path
 
 DRY_RUN = os.getenv("AUTOMERCH_DRY_RUN", "true").lower() == "true"
@@ -36,7 +37,7 @@ def create_listing_draft(product: dict) -> str:
         "is_personalizable": False,
     }
     url = f"{BASE_URL}/shops/{ETSY_SHOP_ID}/listings"
-    r = requests.post(url, headers=_headers(), json=payload, timeout=30)
+    r = http_request("POST", url, headers=_headers(), json=payload, timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy error {r.status_code}: {r.text}")
     data = r.json()
@@ -48,7 +49,7 @@ def publish_listing(listing_id: str) -> bool:
     if DRY_RUN:
         return True
     url = f"{BASE_URL}/listings/{listing_id}"
-    r = requests.patch(url, headers=_headers(), json={"state": "active"}, timeout=30)
+    r = http_request("PATCH", url, headers=_headers(), json={"state": "active"}, timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy publish error {r.status_code}: {r.text}")
     return True
@@ -58,7 +59,7 @@ def upload_listing_image_from_url(listing_id: str, image_url: str) -> bool:
     if DRY_RUN:
         return True
     # Download image then upload via multipart
-    resp = requests.get(image_url, timeout=30)
+    resp = http_request("GET", image_url, timeout=30)
     resp.raise_for_status()
     return _upload_listing_image_bytes(listing_id, resp.content, file_name=Path(image_url).name or "image.jpg")
 
@@ -76,7 +77,7 @@ def _upload_listing_image_bytes(listing_id: str, data: bytes, file_name: str) ->
     headers = _headers()
     headers.pop("Content-Type", None)
     files = {"image": (file_name, data, "application/octet-stream")}
-    r = requests.post(url, headers=headers, files=files, timeout=60)
+    r = http_request("POST", url, headers=headers, files=files, timeout=60)
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy image upload error {r.status_code}: {r.text}")
     return True
@@ -89,7 +90,7 @@ def update_listing(listing_id: str, fields: dict) -> bool:
     allowed = {k: fields[k] for k in ("title", "description", "who_made", "when_made", "is_supply") if k in fields and fields[k] is not None}
     if not allowed:
         return True
-    r = requests.patch(url, headers=_headers(), json=allowed, timeout=30)
+    r = http_request("PATCH", url, headers=_headers(), json=allowed, timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy update error {r.status_code}: {r.text}")
     return True
@@ -110,7 +111,7 @@ def update_listing_price(listing_id: str, price: float, currency: str = "USD", q
             }
         ]
     }
-    r = requests.put(url, headers=_headers(), json=body, timeout=30)
+    r = http_request("PUT", url, headers=_headers(), json=body, timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy inventory error {r.status_code}: {r.text}")
     return True
@@ -135,7 +136,7 @@ def search_listings(keywords: str, limit: int = 50, offset: int = 0, sort_on: st
         # "category": category,  # optionally add category filtering
     }
     url = f"{BASE_URL}/listings/active"
-    r = requests.get(url, headers=_headers(), params=params, timeout=30)
+    r = http_request("GET", url, headers=_headers(), params=params, timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy search error {r.status_code}: {r.text}")
     data = r.json()
