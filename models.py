@@ -8,6 +8,7 @@ class Product(SQLModel, table=True):
     name: Optional[str] = None
     description: Optional[str] = None
     price: Optional[float] = None
+    cost: Optional[float] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     thumbnail_url: Optional[str] = None
     variant_id: Optional[int] = None  # Printful catalog variant id
@@ -48,3 +49,20 @@ class ProductVariant(SQLModel, table=True):
     size: Optional[str] = None
     color: Optional[str] = None
     printful_variant_id: Optional[int] = None
+
+
+class VariantMap(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    size: Optional[str] = None
+    color: Optional[str] = None
+    printful_variant_id: int
+
+
+class PricingRule(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    name: str = Field(default="Global")
+    active: bool = Field(default=True)
+    margin_pct: float = Field(default=0.5)  # 50% margin over cost
+    min_price: float = Field(default=9.99)
+    max_price: float = Field(default=99.99)
+    rounding: str = Field(default=".99")  # .99 or .95

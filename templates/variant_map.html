@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Variant Mapping (Size/Color → Printful Variant ID)</h2>
+
+<form method="post" action="/api/variants/map/add" style="margin-bottom:10px;">
+  <input type="text" name="size" placeholder="Size (e.g., M)" />
+  <input type="text" name="color" placeholder="Color (e.g., Black)" />
+  <input type="number" name="printful_variant_id" placeholder="Printful Variant ID" required />
+  <button type="submit">Add Mapping</button>
+</form>
+
+<table border="1" cellpadding="6" cellspacing="0">
+  <thead><tr><th>ID</th><th>Size</th><th>Color</th><th>Printful Variant ID</th><th>Actions</th></tr></thead>
+  <tbody>
+  {% for m in rows %}
+    <tr>
+      <td>#{{ m.id }}</td>
+      <td>{{ m.size or 'ANY' }}</td>
+      <td>{{ m.color or 'ANY' }}</td>
+      <td>{{ m.printful_variant_id }}</td>
+      <td>
+        <form method="post" action="/api/variants/map/delete" style="display:inline;">
+          <input type="hidden" name="id" value="{{ m.id }}" />
+          <button type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+  {% endfor %}
+  </tbody>
+</table>
+{% endblock %}
+

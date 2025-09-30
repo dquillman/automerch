@@ -11,7 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlmodel import select
 
 from db import init_db, get_session
-from models import Product, RunLog, ResearchSnapshot, ProductVariant
+from models import Product, RunLog, ResearchSnapshot, ProductVariant, PricingRule, VariantMap
 from version import get_version
 from research import run_research
 
@@ -257,6 +257,57 @@ def research_snapshots_page(request: Request, q: str | None = None):
         "research_snapshots.html",
         {"request": request, "title": "Research Snapshots", "rows": rows, "q": q or ""},
     )
+
+
+@app.get("/variants/map")
+def variant_map_page(request: Request):
+    with get_session() as s:
+        rows = s.exec(select(VariantMap)).all()
+    return templates.TemplateResponse("variant_map.html", {"request": request, "title": "Variant Map", "rows": rows})
+
+
+@app.post("/api/variants/map/add")
+def variant_map_add(size: str = Form(None), color: str = Form(None), printful_variant_id: str = Form(...)):
+    try:
+        pfid = int(printful_variant_id)
+    except ValueError:
+        pfid = None
+    if pfid is None:
+        return RedirectResponse(url="/variants/map", status_code=303)
+    with get_session() as s:
+        m = VariantMap(size=(size or None), color=(color or None), printful_variant_id=pfid)
+        s.add(m)
+        s.commit()
+    return RedirectResponse(url="/variants/map", status_code=303)
+
+
+@app.post("/api/variants/map/delete")
+def variant_map_delete(id: int = Form(...)):
+    with get_session() as s:
+        m = s.get(VariantMap, id)
+        if m:
+            s.delete(m)
+            s.commit()
+    return RedirectResponse(url="/variants/map", status_code=303)
+
+
+@app.post("/api/products/variants/add_matrix")
+def add_variant_matrix(sku: str = Form(...), sizes: list[str] = Form(default_factory=list), colors: list[str] = Form(default_factory=list)):
+    created = 0
+    with get_session() as s:
+        for size in (sizes or [None]):
+            for color in (colors or [None]):
+                size_v = size or None
+                color_v = color or None
+                exists = s.exec(select(ProductVariant).where((ProductVariant.product_sku == sku) & (ProductVariant.size == size_v) & (ProductVariant.color == color_v))).first()
+                if exists:
+                    continue
+                s.add(ProductVariant(product_sku=sku, size=size_v, color=color_v))
+                created += 1
+        s.commit()
+        s.add(RunLog(job="variant_matrix_add", status="ok", message=f"{sku}: {created} created"))
+        s.commit()
+    return RedirectResponse(url="/products", status_code=303)
 
 
 @app.get("/research/snapshots/diff")
@@ -607,11 +658,15 @@ def product_to_printful(sku: str = Form(...)):
             if variants:
                 variant_inputs = []
                 for v in variants:
-                    if not v.printful_variant_id and v.size and v.color:
-                        # Require mapping to Printful variant_id externally; fallback to product.variant_id
-                        pf_vid = obj.variant_id or 4011
-                    else:
-                        pf_vid = v.printful_variant_id or obj.variant_id or 4011
+                    # Try global VariantMap first
+                    mapping = None
+                    if v.size or v.color:
+                        mapping = session.exec(
+                            select(VariantMap).where(
+                                (VariantMap.size == (v.size or None)) & (VariantMap.color == (v.color or None))
+                            )
+                        ).first()
+                    pf_vid = (mapping.printful_variant_id if mapping else None) or v.printful_variant_id or obj.variant_id or 4011
                     variant_inputs.append({
                         "retail_price": str(payload["price"]),
                         "sku": f"{obj.sku}-{(v.size or 'ONE').upper()}-{(v.color or 'NA').upper()}",
@@ -704,12 +759,27 @@ def run_job(job: str = Form(...)):
 
 
 # Pricing deltas
-def _proposed_99(price: float | None) -> float | None:
-    if price is None:
+def _active_pricing_rule(session) -> PricingRule:
+    rule = session.exec(select(PricingRule).where(PricingRule.active == True)).first()  # noqa: E712
+    return rule or PricingRule()
+
+
+def _apply_rounding(value: float, rounding: str) -> float:
+    if rounding == ".95":
+        return round(int(value) + 0.95, 2)
+    return round(int(value) + 0.99, 2)
+
+
+def _proposed_price(product: Product, rule: PricingRule) -> float | None:
+    # Base on cost if available; otherwise keep current price and enforce rounding/min/max
+    if product.cost is not None and product.cost > 0:
+        base = float(product.cost) * (1.0 + float(rule.margin_pct))
+    elif product.price is not None:
+        base = float(product.price)
+    else:
         return None
-    p = float(price)
-    # Force .99 endings
-    return round(int(p) + 0.99 if p - int(p) != 0.99 else p, 2)
+    base = max(float(rule.min_price), min(float(rule.max_price), base))
+    return _apply_rounding(base, rule.rounding)
 
 
 @app.get("/pricing/deltas")
@@ -717,8 +787,9 @@ def pricing_deltas_page(request: Request):
     rows = []
     with get_session() as s:
         products = s.exec(select(Product)).all()
+        rule = _active_pricing_rule(s)
         for p in products:
-            prop = _proposed_99(p.price)
+            prop = _proposed_price(p, rule)
             if prop is not None and p.price is not None and abs(prop - float(p.price)) >= 0.01:
                 rows.append({
                     "sku": p.sku,
@@ -735,11 +806,12 @@ def pricing_apply(skus: list[str] = Form(default_factory=list)):
     from etsy_client import update_listing_price
     changed = 0; errors = 0
     with get_session() as s:
+        rule = _active_pricing_rule(s)
         for sku in skus or []:
             p = s.get(Product, sku)
             if not p or p.price is None:
                 continue
-            prop = _proposed_99(p.price)
+            prop = _proposed_price(p, rule)
             if prop is None or abs(prop - float(p.price)) < 0.01:
                 continue
             old = float(p.price)
@@ -757,6 +829,40 @@ def pricing_apply(skus: list[str] = Form(default_factory=list)):
                 errors += 1
                 s.add(RunLog(job="pricing_apply", status="error", message=f"{sku}: {e}"))
                 s.commit()
+    return RedirectResponse(url="/pricing/deltas", status_code=303)
+
+
+@app.get("/pricing/rules")
+def pricing_rules_page(request: Request):
+    with get_session() as s:
+        rule = s.exec(select(PricingRule).where(PricingRule.active == True)).first()  # noqa: E712
+        rule = rule or PricingRule()
+    return templates.TemplateResponse("pricing_rules.html", {"request": request, "title": "Pricing Rules", "rule": rule})
+
+
+@app.post("/api/pricing/rules/save")
+def pricing_rules_save(name: str = Form("Global"), active: str = Form("true"), margin_pct: str = Form("0.5"), min_price: str = Form("9.99"), max_price: str = Form("99.99"), rounding: str = Form(".99")):
+    on = (active.lower() == "true" or active == "1" or active.lower() == "on")
+    try:
+        margin = float(margin_pct)
+        minp = float(min_price)
+        maxp = float(max_price)
+    except ValueError:
+        margin, minp, maxp = 0.5, 9.99, 99.99
+    with get_session() as s:
+        # Single active global rule for now
+        rule = s.exec(select(PricingRule).where(PricingRule.name == name)).first()
+        if not rule:
+            rule = PricingRule(name=name)
+        rule.active = on
+        rule.margin_pct = margin
+        rule.min_price = minp
+        rule.max_price = maxp
+        rule.rounding = rounding if rounding in (".99", ".95") else ".99"
+        s.add(rule)
+        s.commit()
+        s.add(RunLog(job="pricing_rule_save", status="ok", message=f"{name}"))
+        s.commit()
     return RedirectResponse(url="/pricing/deltas", status_code=303)
 
 

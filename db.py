@@ -36,6 +36,8 @@ def migrate_db():
                 to_add.append("ALTER TABLE product ADD COLUMN description VARCHAR")
             if 'price' not in cols:
                 to_add.append("ALTER TABLE product ADD COLUMN price FLOAT")
+            if 'cost' not in cols:
+                to_add.append("ALTER TABLE product ADD COLUMN cost FLOAT")
             if 'created_at' not in cols:
                 to_add.append("ALTER TABLE product ADD COLUMN created_at TIMESTAMP")
             if 'thumbnail_url' not in cols:

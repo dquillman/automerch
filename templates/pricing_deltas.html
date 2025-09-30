@@ -2,7 +2,7 @@
 {% block content %}
 <h2>Pricing Deltas</h2>
 
-<p>Proposed .99 rounding for products with prices not ending in .99. Select and apply.</p>
+<p>Proposed prices based on active Pricing Rule (margin, min/max, rounding). Select and apply. <a href="/pricing/rules">Edit rules</a>.</p>
 
 {% if deltas and deltas|length > 0 %}
 <form method="post" action="/api/pricing/apply">
@@ -38,4 +38,3 @@
   <p>No price changes proposed.</p>
 {% endif %}
 {% endblock %}
-
