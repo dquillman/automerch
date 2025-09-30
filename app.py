@@ -11,7 +11,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from sqlmodel import select
 
 from db import init_db, get_session
-from models import Product, RunLog, ResearchSnapshot
+from models import Product, RunLog, ResearchSnapshot, ProductVariant
 from version import get_version
 from research import run_research
 
@@ -44,6 +44,10 @@ def home(request: Request):
 def products_page(request: Request):
     with get_session() as session:
         products = session.exec(select(Product)).all()
+        variant_rows = session.exec(select(ProductVariant)).all()
+        variants_map = {}
+        for v in variant_rows:
+            variants_map.setdefault(v.product_sku, []).append(v)
     printful_variants = [
         {"id": 4011, "label": "4011 - Tee (example)"},
         {"id": 4012, "label": "4012 - Tee (example)"},
@@ -51,7 +55,7 @@ def products_page(request: Request):
     ]
     return templates.TemplateResponse(
         "products.html",
-        {"request": request, "products": products, "title": "Products", "printful_variants": printful_variants},
+        {"request": request, "products": products, "title": "Products", "printful_variants": printful_variants, "variants_map": variants_map},
     )
 
 
@@ -439,8 +443,21 @@ def delete_product(sku: str = Form(...)):
 def upload_product_image(sku: str = Form(...), image: UploadFile = File(...)):
     suffix = Path(image.filename).suffix or ".jpg"
     path = MEDIA_PRODUCTS / f"{sku}{suffix}"
-    with open(path, "wb") as f:
-        f.write(image.file.read())
+    data = image.file.read()
+    try:
+        from PIL import Image
+        from io import BytesIO
+        bio = BytesIO(data)
+        im = Image.open(bio).convert("RGB")
+        w, h = im.size
+        max_w = int(os.getenv("IMG_MAX_WIDTH", "1600"))
+        if w > max_w:
+            ratio = max_w / float(w)
+            im = im.resize((max_w, int(h * ratio)))
+        im.save(path, format="JPEG", quality=int(os.getenv("IMG_JPEG_QUALITY", "88")))
+    except Exception:
+        with open(path, "wb") as f:
+            f.write(data)
     public_url = f"/media/products/{path.name}"
     # If S3 is configured, upload and use S3 URL instead
     try:
@@ -573,7 +590,7 @@ def product_etsy_update(sku: str = Form(...)):
 
 @app.post("/api/products/printful")
 def product_to_printful(sku: str = Form(...)):
-    from printful_client import create_product
+    from printful_client import create_product, create_product_with_variants
     with get_session() as session:
         obj = session.get(Product, sku)
         if obj is None:
@@ -583,19 +600,65 @@ def product_to_printful(sku: str = Form(...)):
             "name": obj.name or obj.sku,
             "price": obj.price or 19.99,
             "thumbnail": obj.thumbnail_url,
-            "variant_id": obj.variant_id or 4011,
         }
         status = "ok"; message = None
         try:
-            variant_id, assets = create_product(payload)
-            obj.printful_variant_id = variant_id
-            session.add(obj)
-            session.commit()
+            variants = session.exec(select(ProductVariant).where(ProductVariant.product_sku == obj.sku)).all()
+            if variants:
+                variant_inputs = []
+                for v in variants:
+                    if not v.printful_variant_id and v.size and v.color:
+                        # Require mapping to Printful variant_id externally; fallback to product.variant_id
+                        pf_vid = obj.variant_id or 4011
+                    else:
+                        pf_vid = v.printful_variant_id or obj.variant_id or 4011
+                    variant_inputs.append({
+                        "retail_price": str(payload["price"]),
+                        "sku": f"{obj.sku}-{(v.size or 'ONE').upper()}-{(v.color or 'NA').upper()}",
+                        "variant_id": pf_vid,
+                        "files": ([{"type": "preview", "url": payload.get("thumbnail")} ] if payload.get("thumbnail") else [])
+                    })
+                results = create_product_with_variants(payload, variant_inputs)
+                # store ids if provided
+                for v, r in zip(variants, results):
+                    if isinstance(r.get("variant_id"), (int, str)):
+                        v.printful_variant_id = r.get("variant_id") if isinstance(r.get("variant_id"), int) else v.printful_variant_id
+                        session.add(v)
+                session.commit()
+            else:
+                variant_id, assets = create_product({**payload, "variant_id": obj.variant_id or 4011})
+                obj.printful_variant_id = variant_id
+                session.add(obj)
+                session.commit()
         except Exception as e:
             status = "error"; message = str(e)
         finally:
             session.add(RunLog(job="printful_create", status=status, message=message))
             session.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/variants/add")
+def add_variant(sku: str = Form(...), size: str = Form(None), color: str = Form(None), printful_variant_id: str = Form(None)):
+    with get_session() as s:
+        v = ProductVariant(product_sku=sku, size=size or None, color=color or None,
+                           printful_variant_id=int(printful_variant_id) if printful_variant_id else None)
+        s.add(v)
+        s.commit()
+        s.add(RunLog(job="variant_add", status="ok", message=f"{sku}:{size}/{color}"))
+        s.commit()
+    return RedirectResponse(url="/products", status_code=303)
+
+
+@app.post("/api/products/variants/delete")
+def delete_variant(id: int = Form(...)):
+    with get_session() as s:
+        v = s.get(ProductVariant, id)
+        if v:
+            s.delete(v)
+            s.commit()
+            s.add(RunLog(job="variant_delete", status="ok", message=str(id)))
+            s.commit()
     return RedirectResponse(url="/products", status_code=303)
 
 
@@ -638,6 +701,63 @@ def run_job(job: str = Form(...)):
         session.commit()
 
     return RedirectResponse(url="/logs", status_code=303)
+
+
+# Pricing deltas
+def _proposed_99(price: float | None) -> float | None:
+    if price is None:
+        return None
+    p = float(price)
+    # Force .99 endings
+    return round(int(p) + 0.99 if p - int(p) != 0.99 else p, 2)
+
+
+@app.get("/pricing/deltas")
+def pricing_deltas_page(request: Request):
+    rows = []
+    with get_session() as s:
+        products = s.exec(select(Product)).all()
+        for p in products:
+            prop = _proposed_99(p.price)
+            if prop is not None and p.price is not None and abs(prop - float(p.price)) >= 0.01:
+                rows.append({
+                    "sku": p.sku,
+                    "name": p.name,
+                    "current": float(p.price),
+                    "proposed": float(prop),
+                    "etsy_listing_id": p.etsy_listing_id,
+                })
+    return templates.TemplateResponse("pricing_deltas.html", {"request": request, "title": "Pricing", "deltas": rows})
+
+
+@app.post("/api/pricing/apply")
+def pricing_apply(skus: list[str] = Form(default_factory=list)):
+    from etsy_client import update_listing_price
+    changed = 0; errors = 0
+    with get_session() as s:
+        for sku in skus or []:
+            p = s.get(Product, sku)
+            if not p or p.price is None:
+                continue
+            prop = _proposed_99(p.price)
+            if prop is None or abs(prop - float(p.price)) < 0.01:
+                continue
+            old = float(p.price)
+            try:
+                p.price = prop
+                s.add(p)
+                s.commit()
+                if p.etsy_listing_id:
+                    update_listing_price(p.etsy_listing_id, float(prop))
+                changed += 1
+                s.add(RunLog(job="pricing_apply", status="ok", message=f"{sku}: {old} -> {prop}"))
+                s.commit()
+            except Exception as e:
+                s.rollback()
+                errors += 1
+                s.add(RunLog(job="pricing_apply", status="error", message=f"{sku}: {e}"))
+                s.commit()
+    return RedirectResponse(url="/pricing/deltas", status_code=303)
 
 
 @app.get("/logs")

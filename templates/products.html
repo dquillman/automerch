@@ -37,6 +37,31 @@
                 <input type="file" name="image" accept="image/*" />
                 <button type="submit">Upload Image</button>
               </form>
+              <details style="margin-top:6px">
+                <summary>Variants</summary>
+                <form method="post" action="/api/products/variants/add" style="margin-top:6px">
+                  <input type="hidden" name="sku" value="{{ p.sku }}" />
+                  <input type="text" name="size" placeholder="Size (e.g., M)" />
+                  <input type="text" name="color" placeholder="Color (e.g., Black)" />
+                  <input type="text" name="printful_variant_id" placeholder="Printful variant id (optional)" />
+                  <button type="submit">Add Variant</button>
+                </form>
+                {% set list = variants_map.get(p.sku) or [] %}
+                {% if list %}
+                <ul>
+                  {% for v in list %}
+                    <li>#{{ v.id }} — {{ v.size or 'ONE' }} / {{ v.color or 'NA' }} — PF: {{ v.printful_variant_id or '' }}
+                      <form method="post" action="/api/products/variants/delete" style="display:inline">
+                        <input type="hidden" name="id" value="{{ v.id }}" />
+                        <button type="submit">Delete</button>
+                      </form>
+                    </li>
+                  {% endfor %}
+                </ul>
+                {% else %}
+                  <p style="opacity:0.7;">No variants defined.</p>
+                {% endif %}
+              </details>
               <form method="post" action="/api/products/generate_copy" style="margin-top:6px">
                 <input type="hidden" name="sku" value="{{ p.sku }}" />
                 <button type="submit">Generate Copy (ChatGPT)</button>

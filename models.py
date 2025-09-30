@@ -40,3 +40,11 @@ class ResearchSnapshot(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow)
     metrics_json: Optional[str] = None
     llm_json: Optional[str] = None
+
+
+class ProductVariant(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    product_sku: str = Field(foreign_key="product.sku")
+    size: Optional[str] = None
+    color: Optional[str] = None
+    printful_variant_id: Optional[int] = None

@@ -49,3 +49,33 @@ def get_store_metrics():
     data = r.json().get("result", {})
     return {"name": data.get("name"), "currency": data.get("currency")} 
 
+
+def create_product_with_variants(product: dict, variants: list[dict]):
+    """
+    Create a product with multiple variants in Printful. Each variant dict should include
+    {"retail_price": str, "sku": str, "variant_id": int, "files": [...]}.
+    In DRY_RUN returns dummy IDs per variant.
+    """
+    if DRY_RUN:
+        return [
+            {"sku": v.get("sku"), "variant_id": f"VARIANT-DRYRUN-{i+1}"}
+            for i, v in enumerate(variants)
+        ]
+    payload = {
+        "sync_product": {
+            "name": product.get("name") or product.get("sku", "AutoMerch Product"),
+            "thumbnail": product.get("thumbnail"),
+            "external_id": product.get("sku"),
+        },
+        "sync_variants": variants,
+    }
+    r = http_request("POST", f"{BASE_URL}/store/products", headers=_headers(), json=payload, timeout=60)
+    if r.status_code >= 400:
+        raise RuntimeError(f"Printful error {r.status_code}: {r.text}")
+    data = r.json().get("result", {})
+    # The API may return only the primary variant. We return SKUs we sent.
+    out = []
+    for v in variants:
+        out.append({"sku": v.get("sku"), "variant_id": v.get("variant_id")})
+    return out
+
