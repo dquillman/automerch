@@ -250,16 +250,216 @@ def llm_synthesis(keywords: str, metrics: Dict[str, Any], sample_listings: List[
 
 
 def run_research(keywords: str, limit: int = 50) -> Dict[str, Any]:
+    """Run complete research including downloading and storing competitor images."""
+    import requests
+    import base64
+    from pathlib import Path
+    import os
+    
+    # Create images directory if it doesn't exist
+    images_dir = Path("research_images")
+    images_dir.mkdir(exist_ok=True)
+    
     listings = search_listings(keywords, limit=limit)
     metrics = basic_market_metrics(listings)
     llm = llm_synthesis(keywords, metrics, listings)
-    preview = [
-        {
+    preview = []
+    
+    for l in listings[:20]:
+        # Extract image URLs from listing - Etsy API returns images in various formats
+        images = []
+        image_url = None
+        
+        # Try multiple possible image field locations
+        if l.get("images") and isinstance(l["images"], list) and len(l["images"]) > 0:
+            # List of image objects
+            for img in l["images"]:
+                if isinstance(img, dict):
+                    # Try common Etsy image URL fields (prioritize larger sizes)
+                    img_url = (img.get("url_fullxfull") or 
+                              img.get("url_570xN") or 
+                              img.get("url_340x270") or 
+                              img.get("url_75x75") or 
+                              img.get("url"))
+                    if img_url:
+                        images.append({"url": img_url})
+                elif isinstance(img, str):
+                    images.append({"url": img})
+        elif l.get("images") and isinstance(l["images"], dict):
+            # Single image object
+            img_url = (l["images"].get("url_fullxfull") or 
+                      l["images"].get("url_570xN") or 
+                      l["images"].get("url"))
+            if img_url:
+                images.append({"url": img_url})
+        
+        # Try direct image URL fields
+        if not images:
+            for field in ["url_fullxfull", "url_570xN", "url_340x270", "url_75x75", "url", "image_url", "primary_image"]:
+                if l.get(field):
+                    images.append({"url": l[field]})
+                    break
+        
+        # Get primary image (first one found)
+        image_url = None
+        if images and len(images) > 0:
+            if isinstance(images[0], dict):
+                image_url = images[0].get("url")
+            elif isinstance(images[0], str):
+                image_url = images[0]
+        
+        # Download and store primary image for image-to-image generation
+        local_image_path = None
+        image_data_base64 = None
+        relative_path = None
+        
+        # Create unique filename
+        listing_id = l.get("listing_id") or f"listing_{len(preview)}"
+        safe_title = "".join(c for c in (l.get("title") or "product")[:50] if c.isalnum() or c in (' ', '-', '_')).strip().replace(' ', '_')
+        
+        # Function to create placeholder image
+        def create_placeholder_image(output_path: Path, title: str, listing_id_val) -> tuple:
+            """Create a placeholder image locally."""
+            try:
+                from PIL import Image, ImageDraw, ImageFont
+                import io
+                
+                # Create 800x800 image with gradient background
+                img = Image.new('RGB', (800, 800), color=(70, 130, 180))
+                draw = ImageDraw.Draw(img)
+                
+                # Draw title
+                title_text = title[:40] if title else f"Product {listing_id_val}"
+                try:
+                    # Try default font first
+                    font = ImageFont.load_default()
+                except:
+                    font = None
+                
+                # Get text size
+                if font:
+                    bbox = draw.textbbox((0, 0), title_text, font=font)
+                    text_width = bbox[2] - bbox[0]
+                    text_height = bbox[3] - bbox[1]
+                else:
+                    text_width = len(title_text) * 10
+                    text_height = 20
+                
+                # Center text
+                position = ((800 - text_width) // 2, (800 - text_height) // 2)
+                draw.text(position, title_text, fill=(255, 255, 255), font=font)
+                
+                # Save image
+                img.save(output_path, 'JPEG', quality=85)
+                
+                # Convert to base64
+                img_bytes = io.BytesIO()
+                img.save(img_bytes, format='JPEG')
+                img_bytes.seek(0)
+                base64_data = base64.b64encode(img_bytes.read()).decode('utf-8')
+                
+                # Use absolute path or relative path that works on Windows
+                try:
+                    rel_path = str(output_path.relative_to(Path.cwd()))
+                except ValueError:
+                    # If relative path fails, use absolute path
+                    rel_path = str(output_path)
+                return rel_path, base64_data
+            except ImportError:
+                print(f"[Research] PIL/Pillow not installed. Install with: pip install Pillow")
+                return None, None
+            except Exception as e:
+                print(f"[Research] Error creating placeholder: {e}")
+                return None, None
+        
+        if image_url and (image_url.startswith("http://") or image_url.startswith("https://")):
+            try:
+                print(f"[Research] Downloading image from: {image_url[:80]}...")
+                response = requests.get(image_url, timeout=10, headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'})
+                print(f"[Research] Response status: {response.status_code}")
+                if response.status_code == 200:
+                    # Get file extension from URL or content type
+                    content_type = response.headers.get('content-type', 'image/jpeg')
+                    ext = 'jpg'
+                    if 'png' in content_type:
+                        ext = 'png'
+                    elif 'webp' in content_type:
+                        ext = 'webp'
+                    elif image_url.lower().endswith('.png'):
+                        ext = 'png'
+                    elif image_url.lower().endswith('.webp'):
+                        ext = 'webp'
+                    
+                    filename = f"{listing_id}_{safe_title}.{ext}"
+                    local_image_path = images_dir / filename
+                    
+                    # Save image locally
+                    local_image_path.write_bytes(response.content)
+                    print(f"[Research] Saved image: {local_image_path} ({len(response.content)} bytes)")
+                    
+                    # Convert to base64 for API
+                    image_data_base64 = base64.b64encode(response.content).decode('utf-8')
+                    print(f"[Research] Base64 length: {len(image_data_base64)} chars")
+                    
+                    # Store local path relative to project root
+                    try:
+                        relative_path = str(local_image_path.relative_to(Path.cwd()))
+                    except ValueError:
+                        # If relative path fails, use absolute path
+                        relative_path = str(local_image_path)
+                else:
+                    raise Exception(f"HTTP {response.status_code}")
+            except Exception as e:
+                # If download fails, create placeholder image
+                print(f"[Research] Download failed, creating placeholder image...")
+                filename = f"{listing_id}_{safe_title}_placeholder.jpg"
+                placeholder_path = images_dir / filename
+                relative_path, image_data_base64 = create_placeholder_image(
+                    placeholder_path, 
+                    l.get("title") or "Product", 
+                    listing_id
+                )
+                if relative_path:
+                    local_image_path = placeholder_path
+                    print(f"[Research] Created placeholder: {local_image_path}")
+        else:
+            # No image URL - create placeholder
+            if not image_url:
+                print(f"[Research] No image URL found, creating placeholder...")
+            filename = f"{listing_id}_{safe_title}_placeholder.jpg"
+            placeholder_path = images_dir / filename
+            relative_path, image_data_base64 = create_placeholder_image(
+                placeholder_path,
+                l.get("title") or "Product",
+                listing_id
+            )
+            if relative_path:
+                local_image_path = placeholder_path
+                print(f"[Research] Created placeholder: {local_image_path}")
+        
+        # Extract price amount
+        price_obj = l.get("price")
+        price = None
+        if isinstance(price_obj, dict):
+            amount = price_obj.get("amount")
+            if amount:
+                price = float(amount) / 100.0 if amount > 100 else float(amount)  # Assume cents if > 100
+        elif isinstance(price_obj, (int, float)):
+            price = float(price_obj)
+        
+        preview.append({
             "listing_id": l.get("listing_id"),
             "title": l.get("title"),
-            "price": l.get("price"),
-            "tags": l.get("tags"),
-        }
-        for l in listings[:20]
-    ]
+            "description": l.get("description"),
+            "price": price,
+            "currency": l.get("price", {}).get("currency_code") if isinstance(l.get("price"), dict) else "USD",
+            "tags": l.get("tags", []),
+            "views": l.get("views"),
+            "num_favorers": l.get("num_favorers"),
+            "url": l.get("url") or (f"https://www.etsy.com/listing/{l.get('listing_id')}" if l.get('listing_id') else None),
+            "images": images,
+            "image_url": image_url,
+            "image_local_path": relative_path,  # Local file path
+            "image_data_base64": image_data_base64,  # Base64 for API
+        })
     return {"keywords": keywords, "metrics": metrics, "llm": llm, "listings": preview}

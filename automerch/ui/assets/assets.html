@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assets - AutoMerch Lite</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+        body.dark-mode { background: #1a1a1a; color: #e0e0e0; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .nav { background: #2d2d2d; padding: 16px 24px; margin-bottom: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+        .nav a { color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s; }
+        .nav a:hover { background: #3d3d3d; }
+        .upload-card, .assets-list {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        body.dark-mode .upload-card,
+        body.dark-mode .assets-list { background: #2d2d2d; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        body.dark-mode .form-group label { color: #e0e0e0; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            color: #333;
+        }
+        body.dark-mode .form-group input,
+        body.dark-mode .form-group select {
+            background: #3d3d3d;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .btn-primary:hover { background: #0056b3; }
+        body.dark-mode .btn-primary { background: #4d9fff; }
+        .asset-item {
+            padding: 16px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        body.dark-mode .asset-item { border-bottom-color: #444; }
+        .asset-item:last-child { border-bottom: none; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <a href="/" style="color: #fff; font-size: 20px; font-weight: 600;">🚀 AutoMerch Lite</a>
+                <a href="/" style="background: #007bff; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: 500;">🏠 Home</a>
+                <a href="/workflow">Workflow</a>
+                <a href="/products/create">Products</a>
+                <a href="/assets" style="color: #4d9fff;">Assets</a>
+                <a href="/drafts">Drafts</a>
+            </div>
+            <button onclick="toggleDarkMode()" id="dark-toggle" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🌙 Dark</button>
+        </nav>
+
+        <h1 style="margin-bottom: 24px; color: #333; transition: color 0.3s;" class="dark-text">📁 Asset Management</h1>
+
+        <div class="upload-card">
+            <h2 style="margin-bottom: 16px; color: #333; transition: color 0.3s;" class="dark-text">Upload Asset</h2>
+            <form id="upload-form" onsubmit="uploadAsset(event)">
+                <div class="form-group">
+                    <label>Product SKU *</label>
+                    <input type="text" id="sku" required placeholder="MUG-001">
+                </div>
+                <div class="form-group">
+                    <label>Asset Type</label>
+                    <select id="asset_type">
+                        <option value="mockup">Mockup</option>
+                        <option value="print_file">Print File</option>
+                        <option value="image">Image</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Google Drive URL</label>
+                    <input type="url" id="drive_url" placeholder="https://drive.google.com/file/...">
+                </div>
+                <div class="form-group">
+                    <label>Local Path</label>
+                    <input type="text" id="local_path" placeholder="/path/to/file.png">
+                </div>
+                <button type="submit" class="btn-primary">📁 Upload Asset</button>
+            </form>
+        </div>
+
+        <div class="assets-list">
+            <h2 style="margin-bottom: 16px; color: #333; transition: color 0.3s;" class="dark-text">All Assets</h2>
+            <div id="assets-display">Loading assets...</div>
+        </div>
+    </div>
+
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
+            document.getElementById('dark-toggle').textContent = document.body.classList.contains('dark-mode') ? '☀️ Light' : '🌙 Dark';
+        }
+
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('dark-toggle').textContent = '☀️ Light';
+        }
+
+        async function uploadAsset(e) {
+            e.preventDefault();
+            const sku = document.getElementById('sku').value;
+            const params = new URLSearchParams({
+                sku: sku,
+                asset_type: document.getElementById('asset_type').value,
+                drive_url: document.getElementById('drive_url').value || '',
+                local_path: document.getElementById('local_path').value || ''
+            });
+
+            try {
+                const response = await fetch(`/api/assets/upload?${params}`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    alert('✅ Asset uploaded successfully!');
+                    loadAssets(sku);
+                    document.getElementById('upload-form').reset();
+                } else {
+                    throw new Error('Upload failed');
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function loadAssets(sku) {
+            if (!sku) return;
+            
+            try {
+                const response = await fetch(`/api/assets/${sku}`);
+                const assets = await response.json();
+                
+                const display = document.getElementById('assets-display');
+                if (assets.length === 0) {
+                    display.innerHTML = '<p style="color: #6c757d;">No assets found for this SKU</p>';
+                    return;
+                }
+                
+                display.innerHTML = assets.map(a => `
+                    <div class="asset-item">
+                        <div>
+                            <strong>${a.asset_type || 'Unknown'}</strong>
+                            <br><small style="color: #6c757d;">SKU: ${a.sku}</small>
+                        </div>
+                        <div>
+                            ${a.drive_url ? `<a href="${a.drive_url}" target="_blank">🔗 View</a>` : ''}
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('assets-display').innerHTML = '<p style="color: #dc3545;">Error loading assets</p>';
+            }
+        }
+
+        document.getElementById('sku').addEventListener('blur', (e) => {
+            if (e.target.value) loadAssets(e.target.value);
+        });
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.body.classList.contains('dark-mode')) {
+                document.querySelectorAll('.dark-text').forEach(el => el.style.color = '#e0e0e0');
+            }
+        });
+    </script>
+</body>
+</html>
+

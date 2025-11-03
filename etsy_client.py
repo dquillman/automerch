@@ -1,6 +1,6 @@
 ﻿import os
 import requests
-from http import request as http_request
+from http_client import request as http_request
 from pathlib import Path
 
 DRY_RUN = os.getenv("AUTOMERCH_DRY_RUN", "true").lower() == "true"
@@ -124,9 +124,49 @@ def search_listings(keywords: str, limit: int = 50, offset: int = 0, sort_on: st
     """
     if DRY_RUN:
         # Return a small mock when dry-run to allow downstream logic to work.
+        # Include mock images so image download can be tested
         return [
-            {"listing_id": 1, "title": f"{keywords} Funny Gift Mug", "price": {"amount": 1599, "currency_code": "USD"}, "tags": ["mug", "funny", "gift"]},
-            {"listing_id": 2, "title": f"{keywords} Minimalist T-Shirt", "price": {"amount": 2199, "currency_code": "USD"}, "tags": ["t-shirt", "minimal", "unisex"]},
+            {
+                "listing_id": 1, 
+                "title": f"{keywords} Funny Gift Mug", 
+                "price": {"amount": 1599, "currency_code": "USD"}, 
+                "tags": ["mug", "funny", "gift"],
+                "images": [
+                    {
+                        "url_570xN": "https://via.placeholder.com/570x570/FF6B6B/ffffff?text=Funny+Gift+Mug",
+                        "url_fullxfull": "https://via.placeholder.com/800x800/FF6B6B/ffffff?text=Funny+Gift+Mug+Full",
+                        "url": "https://via.placeholder.com/570x570/FF6B6B/ffffff?text=Funny+Gift+Mug"
+                    }
+                ],
+                "url_570xN": "https://via.placeholder.com/570x570/FF6B6B/ffffff?text=Funny+Gift+Mug",
+            },
+            {
+                "listing_id": 2, 
+                "title": f"{keywords} Minimalist T-Shirt", 
+                "price": {"amount": 2199, "currency_code": "USD"}, 
+                "tags": ["t-shirt", "minimal", "unisex"],
+                "images": [
+                    {
+                        "url_570xN": "https://via.placeholder.com/570x570/4ECDC4/ffffff?text=Minimalist+T-Shirt",
+                        "url_fullxfull": "https://via.placeholder.com/800x800/4ECDC4/ffffff?text=Minimalist+T-Shirt+Full",
+                        "url": "https://via.placeholder.com/570x570/4ECDC4/ffffff?text=Minimalist+T-Shirt"
+                    }
+                ],
+                "url_570xN": "https://via.placeholder.com/570x570/4ECDC4/ffffff?text=Minimalist+T-Shirt",
+            },
+            {
+                "listing_id": 3,
+                "title": f"{keywords} Custom Print",
+                "price": {"amount": 2499, "currency_code": "USD"},
+                "tags": ["custom", "print", "design"],
+                "images": [
+                    {
+                        "url_570xN": "https://via.placeholder.com/570x570/95E1D3/ffffff?text=Custom+Print",
+                        "url_fullxfull": "https://via.placeholder.com/800x800/95E1D3/ffffff?text=Custom+Print+Full",
+                        "url": "https://via.placeholder.com/570x570/95E1D3/ffffff?text=Custom+Print"
+                    }
+                ],
+            },
         ]
     params = {
         "keywords": keywords,

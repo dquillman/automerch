@@ -1,0 +1,27 @@
+<!-- Navigation Component -->
+<nav style="background: #2d2d2d; padding: 16px 24px; margin-bottom: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px;">
+    <div style="display: flex; align-items: center; gap: 24px;">
+        <a href="/" style="color: #fff; text-decoration: none; font-size: 20px; font-weight: 600;">🚀 AutoMerch Lite</a>
+        <a href="/" style="background: #007bff; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: 500;">🏠 Home</a>
+        <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+            <a href="/workflow" style="color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#3d3d3d'" onmouseout="this.style.background='transparent'">Workflow</a>
+            <a href="/research" style="color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#3d3d3d'" onmouseout="this.style.background='transparent'">Research</a>
+            <a href="/products/create" style="color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#3d3d3d'" onmouseout="this.style.background='transparent'">Products</a>
+            <a href="/products/printful" style="color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#3d3d3d'" onmouseout="this.style.background='transparent'">Printful</a>
+            <a href="/assets" style="color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#3d3d3d'" onmouseout="this.style.background='transparent'">Assets</a>
+            <a href="/drafts" style="color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#3d3d3d'" onmouseout="this.style.background='transparent'">Drafts</a>
+            <a href="/analytics" style="color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#3d3d3d'" onmouseout="this.style.background='transparent'">Analytics</a>
+            <a href="/settings" style="color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#3d3d3d'" onmouseout="this.style.background='transparent'">Settings</a>
+        </div>
+    </div>
+    <button onclick="toggleDarkMode()" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;" id="nav-dark-toggle">🌙 Dark</button>
+</nav>
+
+<script>
+function toggleDarkMode() {
+    document.body.classList.toggle('dark-mode');
+    const saved = document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled';
+    localStorage.setItem('darkMode', saved);
+}
+</script>
+

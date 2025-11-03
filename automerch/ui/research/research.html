@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Research - AutoMerch Lite</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+        body.dark-mode { background: #1a1a1a; color: #e0e0e0; }
+        .container { max-width: 1400px; margin: 0 auto; }
+        .nav { background: #2d2d2d; padding: 16px 24px; margin-bottom: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+        .nav a { color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s; }
+        .nav a:hover { background: #3d3d3d; }
+        .search-form { background: white; padding: 24px; border-radius: 8px; margin-bottom: 24px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        body.dark-mode .search-form { background: #2d2d2d; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; margin-bottom: 8px; color: #333; font-weight: 500; }
+        body.dark-mode .form-group label { color: #e0e0e0; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            color: #333;
+        }
+        body.dark-mode .form-group input,
+        body.dark-mode .form-group select {
+            background: #3d3d3d;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            padding: 10px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .btn-primary:hover { background: #0056b3; }
+        body.dark-mode .btn-primary { background: #4d9fff; }
+        .results { display: grid; gap: 24px; }
+        .metrics-card, .listings-card, .insights-card {
+            background: white;
+            padding: 24px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        body.dark-mode .metrics-card,
+        body.dark-mode .listings-card,
+        body.dark-mode .insights-card {
+            background: #2d2d2d;
+        }
+        .metric-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 16px; margin-top: 16px; }
+        .metric-item { text-align: center; padding: 12px; background: #f8f9fa; border-radius: 4px; }
+        body.dark-mode .metric-item { background: #3d3d3d; }
+        .metric-value { font-size: 24px; font-weight: 600; color: #007bff; }
+        body.dark-mode .metric-value { color: #4d9fff; }
+        .metric-label { font-size: 12px; color: #6c757d; margin-top: 4px; }
+        body.dark-mode .metric-label { color: #999; }
+        .listing-item {
+            padding: 12px;
+            border-bottom: 1px solid #eee;
+            transition: background 0.2s;
+        }
+        body.dark-mode .listing-item { border-bottom-color: #444; }
+        .listing-item:hover { background: #f8f9fa; }
+        body.dark-mode .listing-item:hover { background: #3d3d3d; }
+        .loading { text-align: center; padding: 40px; color: #6c757d; }
+        body.dark-mode .loading { color: #999; }
+        .error { background: #f8d7da; color: #721c24; padding: 12px; border-radius: 4px; margin-bottom: 16px; }
+        body.dark-mode .error { background: #4a2d2d; color: #ff6b6b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <a href="/" style="color: #fff; font-size: 20px; font-weight: 600;">🚀 AutoMerch Lite</a>
+                <a href="/" style="background: #007bff; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: 500;">🏠 Home</a>
+                <a href="/workflow">Workflow</a>
+                <a href="/research" style="color: #4d9fff;">Research</a>
+                <a href="/products/create">Products</a>
+                <a href="/drafts">Drafts</a>
+            </div>
+            <button onclick="toggleDarkMode()" id="dark-toggle" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🌙 Dark</button>
+        </nav>
+
+        <h1 style="margin-bottom: 24px; color: #333; transition: color 0.3s;" class="dark-text">🔍 Product Research</h1>
+
+        <div class="search-form">
+            <form id="research-form" onsubmit="runResearch(event)">
+                <div class="form-group">
+                    <label>Keywords</label>
+                    <input type="text" id="keywords" placeholder="e.g., coffee mug, funny t-shirt" required>
+                </div>
+                <div class="form-group" style="display: grid; grid-template-columns: 1fr auto; gap: 12px; align-items: end;">
+                    <div>
+                        <label>Limit Results</label>
+                        <select id="limit">
+                            <option value="50">50 listings</option>
+                            <option value="100">100 listings</option>
+                            <option value="200">200 listings</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn-primary">🔍 Research</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="error-message" style="display: none;" class="error"></div>
+
+        <div id="results" style="display: none;" class="results">
+            <div class="metrics-card">
+                <h2 style="margin-bottom: 16px; color: #333; transition: color 0.3s;" class="dark-text">Market Metrics</h2>
+                <div class="metric-grid" id="metrics-grid"></div>
+            </div>
+
+            <div class="insights-card">
+                <h2 style="margin-bottom: 16px; color: #333; transition: color 0.3s;" class="dark-text">AI Insights</h2>
+                <div id="insights-content"></div>
+            </div>
+
+            <div class="listings-card">
+                <h2 style="margin-bottom: 16px; color: #333; transition: color 0.3s;" class="dark-text">Sample Listings</h2>
+                <div id="listings-list"></div>
+            </div>
+
+            <div style="background: white; padding: 24px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);" class="dark-bg">
+                <h2 style="margin-bottom: 16px; color: #333; transition: color 0.3s;" class="dark-text">Next Steps</h2>
+                <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                    <button onclick="viewDetailedResearch()" class="btn-primary" style="background: #667eea; color: white; border: none; padding: 12px 24px; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">🔍 View Full Research Details</button>
+                    <a href="/products/create" class="btn-primary" style="text-decoration: none; display: inline-block;">🎨 Create Product</a>
+                    <a href="/products/printful" class="btn-primary" style="text-decoration: none; display: inline-block;">🖨️ Create Printful Product</a>
+                    <button onclick="exportData()" class="btn-primary">📥 Export Data</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">Researching market... This may take a minute.</div>
+    </div>
+
+    <script>
+        let researchData = null;
+
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
+            document.getElementById('dark-toggle').textContent = document.body.classList.contains('dark-mode') ? '☀️ Light' : '🌙 Dark';
+        }
+
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('dark-toggle').textContent = '☀️ Light';
+        }
+
+        async function runResearch(e) {
+            e.preventDefault();
+            const keywords = document.getElementById('keywords').value;
+            const limit = parseInt(document.getElementById('limit').value);
+            
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error-message').style.display = 'none';
+
+            try {
+                const response = await fetch(`/api/research?q=${encodeURIComponent(keywords)}&limit=${limit}`);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                
+                researchData = await response.json();
+                displayResults(researchData);
+            } catch (error) {
+                document.getElementById('error-message').textContent = `Error: ${error.message}`;
+                document.getElementById('error-message').style.display = 'block';
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        function displayResults(data) {
+            const metrics = data.metrics || {};
+            const prices = metrics.prices || {};
+            
+            document.getElementById('metrics-grid').innerHTML = `
+                <div class="metric-item">
+                    <div class="metric-value">${metrics.total_listings || 0}</div>
+                    <div class="metric-label">Total Listings</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">${metrics.competition_score || 0}</div>
+                    <div class="metric-label">Competition Score</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">$${prices.median || 0}</div>
+                    <div class="metric-label">Median Price</div>
+                </div>
+                <div class="metric-item">
+                    <div class="metric-value">$${prices.avg || 0}</div>
+                    <div class="metric-label">Average Price</div>
+                </div>
+            `;
+
+            const insights = data.llm || {};
+            document.getElementById('insights-content').innerHTML = `
+                <p style="color: #6c757d; line-height: 1.8; margin-bottom: 16px;" class="dark-text-secondary">
+                    ${insights.summary || insights.raw || 'No AI insights available. Research completed successfully.'}
+                </p>
+                ${insights.opportunities ? `<h3 style="margin-top: 16px; margin-bottom: 8px; color: #333;" class="dark-text">Opportunities</h3><p style="color: #6c757d;" class="dark-text-secondary">${insights.opportunities}</p>` : ''}
+                ${insights.recommendations ? `<h3 style="margin-top: 16px; margin-bottom: 8px; color: #333;" class="dark-text">Recommendations</h3><p style="color: #6c757d;" class="dark-text-secondary">${insights.recommendations}</p>` : ''}
+            `;
+
+            const listings = data.listings || [];
+            document.getElementById('listings-list').innerHTML = listings.map(l => `
+                <div class="listing-item">
+                    <strong>${l.title || 'Untitled'}</strong>
+                    <br>Price: $${l.price || '0.00'} | ID: ${l.listing_id || 'N/A'}
+                </div>
+            `).join('') || '<p style="color: #6c757d;">No listings found</p>';
+
+            document.getElementById('results').style.display = 'grid';
+            
+            // Show the "View Full Research Details" button after results load
+            const viewDetailsBtn = document.getElementById('view-details-btn');
+            if (viewDetailsBtn) {
+                viewDetailsBtn.style.display = 'inline-block';
+            }
+        }
+
+        function exportData() {
+            if (!researchData) return;
+            const blob = new Blob([JSON.stringify(researchData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `research-${Date.now()}.json`;
+            a.click();
+        }
+
+        function viewDetailedResearch() {
+            if (!researchData) return;
+            // Encode research data and pass to detail page
+            const dataParam = encodeURIComponent(JSON.stringify(researchData));
+            window.location.href = `/research/detail?keywords=${encodeURIComponent(researchData.keywords)}&data=${dataParam}`;
+        }
+
+        // Apply dark mode to text elements
+        document.addEventListener('DOMContentLoaded', () => {
+            const isDark = document.body.classList.contains('dark-mode');
+            document.querySelectorAll('.dark-text').forEach(el => {
+                el.style.color = isDark ? '#e0e0e0' : '#333';
+            });
+            document.querySelectorAll('.dark-text-secondary').forEach(el => {
+                el.style.color = isDark ? '#999' : '#6c757d';
+            });
+            document.querySelectorAll('.dark-bg').forEach(el => {
+                el.style.background = isDark ? '#2d2d2d' : 'white';
+            });
+        });
+    </script>
+</body>
+</html>
+

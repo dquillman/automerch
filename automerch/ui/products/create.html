@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Product - AutoMerch Lite</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+        body.dark-mode { background: #1a1a1a; color: #e0e0e0; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .nav { background: #2d2d2d; padding: 16px 24px; margin-bottom: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+        .nav a { color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s; }
+        .nav a:hover { background: #3d3d3d; }
+        .form-card {
+            background: white;
+            padding: 32px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        body.dark-mode .form-card { background: #2d2d2d; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        body.dark-mode .form-group label { color: #e0e0e0; }
+        .form-group input, .form-group textarea, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            color: #333;
+            font-family: inherit;
+        }
+        body.dark-mode .form-group input,
+        body.dark-mode .form-group textarea,
+        body.dark-mode .form-group select {
+            background: #3d3d3d;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .btn-primary:hover { background: #0056b3; }
+        body.dark-mode .btn-primary { background: #4d9fff; }
+        .success-message { background: #d4edda; color: #155724; padding: 12px; border-radius: 4px; margin-bottom: 16px; display: none; }
+        body.dark-mode .success-message { background: #1e3a1e; color: #4ade80; }
+        .error-message { background: #f8d7da; color: #721c24; padding: 12px; border-radius: 4px; margin-bottom: 16px; display: none; }
+        body.dark-mode .error-message { background: #4a2d2d; color: #ff6b6b; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <a href="/" style="color: #fff; font-size: 20px; font-weight: 600;">🚀 AutoMerch Lite</a>
+                <a href="/" style="background: #007bff; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: 500;">🏠 Home</a>
+                <a href="/workflow">Workflow</a>
+                <a href="/research">Research</a>
+                <a href="/products/create" style="color: #4d9fff;">Products</a>
+                <a href="/products/printful">Printful</a>
+                <a href="/drafts">Drafts</a>
+            </div>
+            <button onclick="toggleDarkMode()" id="dark-toggle" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🌙 Dark</button>
+        </nav>
+
+        <h1 style="margin-bottom: 24px; color: #333; transition: color 0.3s;" class="dark-text">🎨 Create Product</h1>
+
+        <div id="success-message" class="success-message"></div>
+        <div id="error-message" class="error-message"></div>
+
+        <div class="form-card">
+            <form id="product-form" onsubmit="createProduct(event)">
+                <div class="form-group">
+                    <label>SKU *</label>
+                    <input type="text" id="sku" required placeholder="e.g., MUG-001">
+                </div>
+                <div class="form-group">
+                    <label>Product Name *</label>
+                    <input type="text" id="name" required placeholder="e.g., Coffee Mug - Adventure Awaits">
+                </div>
+                <div class="form-group">
+                    <label>Description</label>
+                    <textarea id="description" placeholder="Product description..."></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label>Price ($)</label>
+                        <input type="number" id="price" step="0.01" placeholder="14.99">
+                    </div>
+                    <div class="form-group">
+                        <label>Cost ($)</label>
+                        <input type="number" id="cost" step="0.01" placeholder="5.00">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Etsy Taxonomy ID</label>
+                    <input type="number" id="taxonomy_id" placeholder="6947 (coffee mugs)">
+                    <small style="color: #6c757d; font-size: 12px;">Common: 6947 (mugs), 69150467 (t-shirts)</small>
+                </div>
+                <div class="form-group">
+                    <label>Tags (comma-separated)</label>
+                    <input type="text" id="tags" placeholder="mug, coffee, gift, custom">
+                </div>
+                <div class="form-group">
+                    <label>Thumbnail URL</label>
+                    <input type="url" id="thumbnail_url" placeholder="https://example.com/image.jpg">
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button type="submit" class="btn-primary">✨ Create Product</button>
+                    <a href="/products/printful" class="btn-primary" style="text-decoration: none; display: inline-block;">🖨️ Create via Printful</a>
+                    <a href="/drafts" class="btn-primary" style="text-decoration: none; display: inline-block;">📋 Create Draft</a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
+            document.getElementById('dark-toggle').textContent = document.body.classList.contains('dark-mode') ? '☀️ Light' : '🌙 Dark';
+        }
+
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('dark-toggle').textContent = '☀️ Light';
+        }
+
+        async function createProduct(e) {
+            e.preventDefault();
+            
+            const product = {
+                sku: document.getElementById('sku').value,
+                name: document.getElementById('name').value,
+                description: document.getElementById('description').value,
+                price: parseFloat(document.getElementById('price').value) || null,
+                cost: parseFloat(document.getElementById('cost').value) || null,
+                taxonomy_id: parseInt(document.getElementById('taxonomy_id').value) || null,
+                tags: document.getElementById('tags').value || null,
+                thumbnail_url: document.getElementById('thumbnail_url').value || null
+            };
+
+            try {
+                const response = await fetch('/api/products', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(product)
+                });
+
+                if (response.ok) {
+                    document.getElementById('success-message').textContent = `✅ Product "${product.name}" created successfully!`;
+                    document.getElementById('success-message').style.display = 'block';
+                    document.getElementById('error-message').style.display = 'none';
+                    document.getElementById('product-form').reset();
+                } else {
+                    throw new Error('Failed to create product');
+                }
+            } catch (error) {
+                document.getElementById('error-message').textContent = `Error: ${error.message}`;
+                document.getElementById('error-message').style.display = 'block';
+                document.getElementById('success-message').style.display = 'none';
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.body.classList.contains('dark-mode')) {
+                document.querySelectorAll('.dark-text').forEach(el => el.style.color = '#e0e0e0');
+            }
+        });
+    </script>
+</body>
+</html>
+

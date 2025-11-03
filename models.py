@@ -1,9 +1,14 @@
 from datetime import datetime
 from typing import Optional
 from sqlmodel import SQLModel, Field
+from sqlalchemy import MetaData
+
+# Use a separate metadata instance for old models to avoid conflicts
+_old_metadata = MetaData()
 
 
 class Product(SQLModel, table=True):
+    __table_args__ = {'extend_existing': True}
     sku: str = Field(primary_key=True)
     name: Optional[str] = None
     description: Optional[str] = None
@@ -19,6 +24,7 @@ class Product(SQLModel, table=True):
 
 
 class RunLog(SQLModel, table=True):
+    __table_args__ = {'extend_existing': True}
     id: Optional[int] = Field(default=None, primary_key=True)
     job: str = Field(default="manual")
     status: str = Field(default="ok")
@@ -27,6 +33,7 @@ class RunLog(SQLModel, table=True):
 
 
 class OAuthToken(SQLModel, table=True):
+    __table_args__ = {'extend_existing': True}
     id: Optional[int] = Field(default=None, primary_key=True)
     provider: str
     access_token: str

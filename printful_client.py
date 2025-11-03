@@ -1,6 +1,6 @@
 ﻿import os
 import requests
-from http import request as http_request
+from http_client import request as http_request
 
 PRINTFUL_API_KEY = os.getenv("PRINTFUL_API_KEY")
 DRY_RUN = os.getenv("AUTOMERCH_DRY_RUN", "true").lower() == "true"
