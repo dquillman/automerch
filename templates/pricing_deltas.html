@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Pricing Deltas</h2>
+
+<p>Proposed prices based on active Pricing Rule (margin, min/max, rounding). Select and apply. <a href="/pricing/rules">Edit rules</a>.</p>
+
+{% if deltas and deltas|length > 0 %}
+<form method="post" action="/api/pricing/apply">
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Select</th>
+        <th>SKU</th>
+        <th>Name</th>
+        <th>Current</th>
+        <th>Proposed</th>
+        <th>Etsy</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for row in deltas %}
+      <tr>
+        <td><input type="checkbox" name="skus" value="{{ row.sku }}" /></td>
+        <td>{{ row.sku }}</td>
+        <td>{{ row.name or '' }}</td>
+        <td>{{ '%.2f' % row.current }}</td>
+        <td><strong>{{ '%.2f' % row.proposed }}</strong></td>
+        <td>{{ row.etsy_listing_id or '' }}</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <div style="margin-top:8px;">
+    <button type="submit">Apply Selected</button>
+  </div>
+</form>
+{% else %}
+  <p>No price changes proposed.</p>
+{% endif %}
+{% endblock %}

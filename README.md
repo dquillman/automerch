@@ -26,6 +26,8 @@ A lightweight starter for automating print-on-demand merchandising workflows (li
 ## Configuration
 Environment variables (via .env):
 - OPENAI_API_KEY: Optional. For creative/LLM features if you add them.
+- OPENAI_MODEL: Defaults to `gpt-5`. Set to your preferred model name.
+- OPENAI_BASE_URL: Optional override of the chat completions API endpoint.
 - PRINTFUL_API_KEY: Optional. Used by printful_client.py when implemented.
 - ETSY_ACCESS_TOKEN: Optional. Used by etsy_client.py when implemented.
 - ETSY_SHOP_ID: Optional. Target shop when listing via Etsy API.

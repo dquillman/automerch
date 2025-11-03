@@ -1,0 +1,164 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Product Research</h2>
+
+<form method="get" action="/research" class="mb-3">
+  <label for="q">Keywords</label>
+  <input type="text" id="q" name="q" value="{{ q }}" style="width: 320px;" />
+  <label for="limit">Limit</label>
+  <input type="number" id="limit" name="limit" value="50" min="10" max="200" />
+  <button type="submit">Run</button>
+</form>
+
+{% if err %}
+  <div style="color: red;">Error: {{ err }}</div>
+{% endif %}
+
+{% if data %}
+  <h3>Summary</h3>
+  {% set m = data.metrics %}
+  <div>
+    <strong>Total Listings:</strong> {{ m.total_listings }}
+    &nbsp;|&nbsp;
+    <strong>Competition Score:</strong> {{ m.competition_score }} / 100
+  </div>
+  <div>
+    <strong>Prices (USD):</strong>
+    min {{ m.prices.min }}, p25 {{ m.prices.p25 }}, median {{ m.prices.median }}, p75 {{ m.prices.p75 }}, max {{ m.prices.max }}
+  </div>
+
+  {% if data.llm and data.llm.summary %}
+    <h3>LLM Insights</h3>
+    <p>{{ data.llm.summary }}</p>
+    <div>
+      <strong>Opportunity:</strong> {{ data.llm.opportunity_score }} / 100
+      &nbsp;|&nbsp;
+      <strong>Recommended Price:</strong>
+      {% if data.llm.price_recommendation and data.llm.price_recommendation.min %}
+        ${{ data.llm.price_recommendation.min }} - ${{ data.llm.price_recommendation.max }}
+      {% else %}
+        {{ data.llm.price_recommendation }}
+      {% endif %}
+    </div>
+    {% if data.llm.recommended_tags %}
+      <div><strong>Recommended Tags:</strong>
+        {% for t in data.llm.recommended_tags %}
+          <code>{{ t }}</code>{% if not loop.last %}, {% endif %}
+        {% endfor %}
+      </div>
+    {% endif %}
+    {% if data.llm.niches %}
+      <div><strong>Niches:</strong> {{ data.llm.niches }}</div>
+    {% endif %}
+    {% if data.llm.risks %}
+      <div><strong>Risks:</strong> {{ data.llm.risks }}</div>
+    {% endif %}
+    {% if data.llm.design_blueprints %}
+      <h3>Design Blueprints</h3>
+      <ol>
+        {% for d in data.llm.design_blueprints %}
+          <li>
+            <div><strong>{{ d.name }}</strong></div>
+            {% if d.on_art_text %}<div><em>On-art text:</em> "{{ d.on_art_text }}"</div>{% endif %}
+            {% if d.visuals %}<div><em>Visuals:</em> {{ d.visuals }}</div>{% endif %}
+            {% if d.style %}<div><em>Style:</em> {{ d.style }}</div>{% endif %}
+            {% if d.colors %}<div><em>Colors:</em> {{ d.colors }}</div>{% endif %}
+            {% if d.print_area %}<div><em>Print area:</em> {{ d.print_area }}</div>{% endif %}
+            {% if d.target_audience %}<div><em>Audience:</em> {{ d.target_audience }}</div>{% endif %}
+            {% if d.primary_tags %}<div><em>Primary tags:</em> {{ d.primary_tags }}</div>{% endif %}
+            {% if d.notes %}<div><em>Notes:</em> {{ d.notes }}</div>{% endif %}
+          </li>
+        {% endfor %}
+      </ol>
+    {% elif data.llm.suggested_designs %}
+      <div><strong>Suggested Designs:</strong> {{ data.llm.suggested_designs }}</div>
+    {% endif %}
+  {% else %}
+    <p><em>Set OPENAI_API_KEY to enable LLM insights. Showing basic metrics only.</em></p>
+  {% endif %}
+
+  <h3>Top Tags</h3>
+  <ul>
+    {% for tag, cnt in m.top_tags %}
+      <li>{{ tag }} — {{ cnt }}</li>
+    {% endfor %}
+  </ul>
+
+  <h3>Examples</h3>
+  <ul>
+    {% for t in m.example_titles %}
+      <li>{{ t }}</li>
+    {% endfor %}
+  </ul>
+
+  <h3>Listings Preview</h3>
+  <table border="1" cellpadding="6" cellspacing="0">
+    <thead>
+      <tr>
+        <th>Title</th>
+        <th>Price</th>
+        <th>Tags</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for l in data.listings %}
+      <tr>
+        <td>{{ l.title }}</td>
+        <td>
+          {% if l.price and l.price.amount %}
+            ${{ (l.price.amount / 100.0) | round(2) }} {{ l.price.currency_code or '' }}
+          {% endif %}
+        </td>
+        <td>
+          {% if l.tags %}
+            {% for t in l.tags %}
+              <code>{{ t }}</code>{% if not loop.last %}, {% endif %}
+            {% endfor %}
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  <h3>Snapshot</h3>
+  <form method="post" action="/api/research/snapshot" style="margin:8px 0;">
+    <input type="hidden" name="q" value="{{ q }}" />
+    <input type="hidden" name="limit" value="{{ limit }}" />
+    <button type="submit">Save Snapshot</button>
+    <a href="/research/snapshots" style="margin-left:8px;">View Snapshots</a>
+  </form>
+  {% if data.llm and data.llm.design_blueprints %}
+    <h3>Actions</h3>
+    <div style="margin: 8px 0;">
+      <a href="/api/research/export.json?q={{ q }}&limit={{ limit }}" target="_blank">Export JSON</a>
+      &nbsp;|&nbsp;
+      <a href="/api/research/export.csv?q={{ q }}&limit={{ limit }}" target="_blank">Export CSV</a>
+    </div>
+
+    <h3>Import Selected Blueprints to Products</h3>
+    <form method="post" action="/api/research/import_blueprints">
+      <input type="hidden" name="q" value="{{ q }}" />
+      <input type="hidden" name="limit" value="{{ limit }}" />
+      <input type="hidden" name="blueprints_json" value='{{ data.llm.design_blueprints | tojson }}' />
+      {% set pr = data.llm.price_recommendation %}
+      <div style="margin: 6px 0;">
+        <label for="price_override">Price</label>
+        <input id="price_override" name="price_override" type="text" value="{% if pr and pr.min %}{{ pr.min }}{% endif %}" placeholder="e.g., 19.99" />
+        <small>(leave blank to skip setting price)</small>
+      </div>
+      <ul>
+        {% for d in data.llm.design_blueprints %}
+          <li>
+            <label>
+              <input type="checkbox" name="idx" value="{{ loop.index0 }}" />
+              <strong>{{ d.name }}</strong>
+            </label>
+            {% if d.on_art_text %}<span>— "{{ d.on_art_text }}"</span>{% endif %}
+          </li>
+        {% endfor %}
+      </ul>
+      <button type="submit">Create Products</button>
+    </form>
+  {% endif %}
+{% endif %}
+{% endblock %}

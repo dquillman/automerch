@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Draft - AutoMerch Lite</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+        body.dark-mode { background: #1a1a1a; color: #e0e0e0; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .nav { background: #2d2d2d; padding: 16px 24px; margin-bottom: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+        .nav a { color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s; }
+        .nav a:hover { background: #3d3d3d; }
+        .form-card {
+            background: white;
+            padding: 32px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        body.dark-mode .form-card { background: #2d2d2d; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        body.dark-mode .form-group label { color: #e0e0e0; }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            color: #333;
+            font-family: inherit;
+        }
+        body.dark-mode .form-group input,
+        body.dark-mode .form-group textarea {
+            background: #3d3d3d;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        .form-group textarea { min-height: 120px; resize: vertical; }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        .btn-primary:hover { background: #0056b3; }
+        body.dark-mode .btn-primary { background: #4d9fff; }
+        .product-selector {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #f8f9fa;
+            border-radius: 4px;
+        }
+        body.dark-mode .product-selector { background: #3d3d3d; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <a href="/" style="color: #fff; font-size: 20px; font-weight: 600;">🚀 AutoMerch Lite</a>
+                <a href="/" style="background: #007bff; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: 500;">🏠 Home</a>
+                <a href="/workflow">Workflow</a>
+                <a href="/products/create">Products</a>
+                <a href="/drafts" style="color: #4d9fff;">Drafts</a>
+            </div>
+            <button onclick="toggleDarkMode()" id="dark-toggle" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🌙 Dark</button>
+        </nav>
+
+        <h1 style="margin-bottom: 24px; color: #333; transition: color 0.3s;" class="dark-text">➕ Create Draft Listing</h1>
+
+        <div class="form-card">
+            <div class="product-selector">
+                <label style="display: block; margin-bottom: 8px; color: #333;" class="dark-text">Load from Existing Product (Optional)</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="product-sku" placeholder="Enter SKU (e.g., MUG-001)" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <button type="button" onclick="loadProduct()" class="btn-primary" style="padding: 8px 16px;">Load</button>
+                </div>
+            </div>
+
+            <form id="draft-form" onsubmit="createDraft(event)">
+                <div class="form-group">
+                    <label>SKU *</label>
+                    <input type="text" id="sku" required placeholder="MUG-001">
+                </div>
+                <div class="form-group">
+                    <label>Title *</label>
+                    <input type="text" id="title" required placeholder="Coffee Mug - Adventure Awaits">
+                </div>
+                <div class="form-group">
+                    <label>Description *</label>
+                    <textarea id="description" required placeholder="Vibrant 11oz ceramic mug perfect for creative dreamers..."></textarea>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+                    <div class="form-group">
+                        <label>Price ($) *</label>
+                        <input type="number" id="price" step="0.01" required placeholder="14.99">
+                    </div>
+                    <div class="form-group">
+                        <label>Taxonomy ID</label>
+                        <input type="number" id="taxonomy_id" placeholder="6947">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Tags (comma-separated)</label>
+                    <input type="text" id="tags" placeholder="mug, coffee, gift">
+                    <small style="color: #6c757d; font-size: 12px;">Separate tags with commas</small>
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <button type="submit" class="btn-primary">✨ Create Draft</button>
+                    <a href="/drafts" class="btn-primary" style="text-decoration: none; display: inline-block;">📋 View Queue</a>
+                </div>
+            </form>
+        </div>
+
+        <div id="result" style="display: none; margin-top: 24px; padding: 16px; background: #d4edda; color: #155724; border-radius: 4px;" class="result-card">
+        </div>
+    </div>
+
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
+            document.getElementById('dark-toggle').textContent = document.body.classList.contains('dark-mode') ? '☀️ Light' : '🌙 Dark';
+        }
+
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('dark-toggle').textContent = '☀️ Light';
+        }
+
+        async function loadProduct() {
+            const sku = document.getElementById('product-sku').value;
+            if (!sku) return;
+
+            try {
+                const response = await fetch(`/api/products/${sku}`);
+                if (response.ok) {
+                    const product = await response.json();
+                    document.getElementById('sku').value = product.sku;
+                    document.getElementById('title').value = product.name || '';
+                    document.getElementById('description').value = product.description || '';
+                    document.getElementById('price').value = product.price || '';
+                    document.getElementById('taxonomy_id').value = product.taxonomy_id || '6947';
+                    document.getElementById('tags').value = product.tags || '';
+                } else {
+                    alert('Product not found');
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        async function createDraft(e) {
+            e.preventDefault();
+
+            const tags = document.getElementById('tags').value
+                .split(',')
+                .map(t => t.trim())
+                .filter(t => t);
+
+            const draft = {
+                sku: document.getElementById('sku').value,
+                title: document.getElementById('title').value,
+                description: document.getElementById('description').value,
+                price: parseFloat(document.getElementById('price').value),
+                taxonomy_id: parseInt(document.getElementById('taxonomy_id').value) || 6947,
+                tags: tags,
+                images: null
+            };
+
+            try {
+                const response = await fetch('/api/drafts/new', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(draft)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    const resultDiv = document.getElementById('result');
+                    resultDiv.style.display = 'block';
+                    resultDiv.innerHTML = `
+                        <strong>✅ Draft created successfully!</strong><br>
+                        Listing ID: ${result.listing_id}<br>
+                        <a href="${result.etsy_url}" target="_blank" style="color: #007bff;">Open in Etsy →</a>
+                    `;
+                    document.getElementById('draft-form').reset();
+                } else {
+                    const error = await response.json();
+                    throw new Error(error.detail || 'Failed to create draft');
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.body.classList.contains('dark-mode')) {
+                document.querySelectorAll('.dark-text').forEach(el => el.style.color = '#e0e0e0');
+                const resultCard = document.querySelector('.result-card');
+                if (resultCard) {
+                    resultCard.style.background = '#1e3a1e';
+                    resultCard.style.color = '#4ade80';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
+

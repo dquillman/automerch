@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block content %}
+<h2>Pricing Rules</h2>
+
+<form method="post" action="/api/pricing/rules/save">
+  <label>Name</label>
+  <input type="text" name="name" value="{{ rule.name or 'Global' }}" />
+  <label>Active</label>
+  <input type="checkbox" name="active" {% if rule.active %}checked{% endif %} />
+  <div style="margin-top:6px;"><label>Margin %</label> <input type="number" step="0.01" name="margin_pct" value="{{ '%.2f' % rule.margin_pct }}" /></div>
+  <div style="margin-top:6px;"><label>Min Price</label> <input type="number" step="0.01" name="min_price" value="{{ '%.2f' % rule.min_price }}" /></div>
+  <div style="margin-top:6px;"><label>Max Price</label> <input type="number" step="0.01" name="max_price" value="{{ '%.2f' % rule.max_price }}" /></div>
+  <div style="margin-top:6px;">
+    <label>Rounding</label>
+    <select name="rounding">
+      <option value=".99" {% if rule.rounding == '.99' %}selected{% endif %}>.99</option>
+      <option value=".95" {% if rule.rounding == '.95' %}selected{% endif %}>.95</option>
+    </select>
+  </div>
+  <div style="margin-top:10px;">
+    <button type="submit">Save</button>
+    <a href="/pricing/deltas" style="margin-left:8px;">Back to Deltas</a>
+  </div>
+</form>
+{% endblock %}
+

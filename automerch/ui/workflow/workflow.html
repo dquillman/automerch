@@ -1,0 +1,631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Workflow - AutoMerch Lite</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+        
+        body.dark-mode {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            padding: 40px;
+            transition: background 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        body.dark-mode .container {
+            background: #2d2d2d;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        }
+        
+        .header {
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        h1 {
+            font-size: 32px;
+            margin-bottom: 8px;
+            color: #333;
+            transition: color 0.3s ease;
+        }
+        
+        body.dark-mode h1 {
+            color: #e0e0e0;
+        }
+        
+        .subtitle {
+            color: #6c757d;
+            font-size: 16px;
+            transition: color 0.3s ease;
+        }
+        
+        body.dark-mode .subtitle {
+            color: #999;
+        }
+        
+        .workflow-steps {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+        }
+        
+        .step {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 24px;
+            border-left: 4px solid #007bff;
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        body.dark-mode .step {
+            background: #3d3d3d;
+            border-left-color: #4d9fff;
+        }
+        
+        .step:hover {
+            transform: translateX(4px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        body.dark-mode .step:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+        }
+        
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .step-number {
+            width: 48px;
+            height: 48px;
+            background: #007bff;
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        
+        body.dark-mode .step-number {
+            background: #4d9fff;
+        }
+        
+        .step-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+            transition: color 0.3s ease;
+        }
+        
+        body.dark-mode .step-title {
+            color: #e0e0e0;
+        }
+        
+        .step-description {
+            color: #6c757d;
+            margin-bottom: 20px;
+            line-height: 1.6;
+            transition: color 0.3s ease;
+        }
+        
+        body.dark-mode .step-description {
+            color: #b0b0b0;
+        }
+        
+        .step-actions {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: inline-block;
+        }
+        
+        .btn-primary {
+            background: #007bff;
+            color: white;
+        }
+        
+        .btn-primary:hover {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+        
+        body.dark-mode .btn-primary {
+            background: #4d9fff;
+        }
+        
+        body.dark-mode .btn-primary:hover {
+            background: #3a7fcc;
+        }
+        
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: #5a6268;
+            transform: translateY(-1px);
+        }
+        
+        body.dark-mode .btn-secondary {
+            background: #555;
+        }
+        
+        body.dark-mode .btn-secondary:hover {
+            background: #444;
+        }
+        
+        .btn-outline {
+            background: transparent;
+            border: 2px solid #007bff;
+            color: #007bff;
+        }
+        
+        .btn-outline:hover {
+            background: #007bff;
+            color: white;
+        }
+        
+        body.dark-mode .btn-outline {
+            border-color: #4d9fff;
+            color: #4d9fff;
+        }
+        
+        body.dark-mode .btn-outline:hover {
+            background: #4d9fff;
+            color: white;
+        }
+        
+        .step-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 12px;
+        }
+        
+        .badge-required {
+            background: #dc3545;
+            color: white;
+        }
+        
+        .badge-optional {
+            background: #ffc107;
+            color: #000;
+        }
+        
+        .badge-automated {
+            background: #28a745;
+            color: white;
+        }
+        
+        .badge-manual {
+            background: #17a2b8;
+            color: white;
+        }
+        
+        .arrow {
+            text-align: center;
+            font-size: 32px;
+            color: #6c757d;
+            margin: -8px 0;
+            transition: color 0.3s ease;
+        }
+        
+        body.dark-mode .arrow {
+            color: #555;
+        }
+        
+        .quick-start {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 12px;
+            padding: 32px;
+            margin-bottom: 40px;
+            text-align: center;
+        }
+        
+        body.dark-mode .quick-start {
+            background: linear-gradient(135deg, #4a5fb8 0%, #5a3a7a 100%);
+        }
+        
+        .quick-start h2 {
+            font-size: 24px;
+            margin-bottom: 12px;
+        }
+        
+        .quick-start p {
+            margin-bottom: 20px;
+            opacity: 0.9;
+        }
+        
+        .dark-mode-toggle {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            background: #6c757d;
+            color: white;
+            transition: all 0.2s;
+            z-index: 1000;
+        }
+        
+        .dark-mode-toggle:hover {
+            background: #5a6268;
+        }
+        
+        body.dark-mode .dark-mode-toggle {
+            background: #495057;
+        }
+        
+        body.dark-mode .dark-mode-toggle:hover {
+            background: #3d4144;
+        }
+        
+        .info-box {
+            background: #e7f3ff;
+            border-left: 4px solid #007bff;
+            padding: 16px;
+            border-radius: 4px;
+            margin-top: 16px;
+            transition: background 0.3s ease;
+        }
+        
+        body.dark-mode .info-box {
+            background: #2d3d4d;
+            border-left-color: #4d9fff;
+        }
+        
+        .info-box strong {
+            color: #007bff;
+            transition: color 0.3s ease;
+        }
+        
+        body.dark-mode .info-box strong {
+            color: #4d9fff;
+        }
+        .nav { background: #2d2d2d; padding: 16px 24px; margin-bottom: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; margin: 0 auto 24px; max-width: 1200px; }
+        .nav a { color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s; }
+        .nav a:hover { background: #3d3d3d; }
+    </style>
+</head>
+<body>
+    <div style="padding: 20px;">
+        <nav class="nav">
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <a href="/" style="color: #fff; font-size: 20px; font-weight: 600;">🚀 AutoMerch Lite</a>
+                <a href="/" style="background: #007bff; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: 500;">🏠 Home</a>
+                <a href="/workflow" style="color: #4d9fff;">Workflow</a>
+                <a href="/research">Research</a>
+                <a href="/products/create">Products</a>
+                <a href="/drafts">Drafts</a>
+                <a href="/analytics">Analytics</a>
+            </div>
+            <button class="dark-mode-toggle" id="dark-mode-toggle" onclick="toggleDarkMode()" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🌙 Dark Mode</button>
+        </nav>
+    </div>
+    
+    <div class="container">
+        <div class="header">
+            <h1>🚀 AutoMerch Lite Workflow</h1>
+            <p class="subtitle">Step-by-step guide to automate your Etsy listings</p>
+        </div>
+        
+        <div class="quick-start">
+            <h2>Quick Start</h2>
+            <p>Follow these steps to create and manage your Etsy listing drafts. Most steps are automated, with final publishing done in Etsy Shop Manager.</p>
+            <a href="/drafts" class="btn btn-outline" style="background: rgba(255,255,255,0.2); border-color: white; color: white;">View Drafts Queue →</a>
+        </div>
+        
+        <div class="workflow-steps">
+            <!-- Step 1 -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-number">1</div>
+                    <div>
+                        <span class="step-title">Authenticate with Etsy</span>
+                        <span class="step-badge badge-required">Required</span>
+                    </div>
+                </div>
+                <p class="step-description">
+                    Connect your Etsy account using OAuth2. This gives AutoMerch Lite permission to create drafts on your behalf. 
+                    Your credentials are securely stored and refreshed automatically.
+                </p>
+                <div class="step-actions">
+                    <a href="/auth/etsy/login" class="btn btn-primary">🔐 Connect Etsy Account</a>
+                    <a href="/docs#/auth/get_auth_etsy_login" class="btn btn-outline">View API Docs</a>
+                </div>
+                <div class="info-box">
+                    <strong>💡 Tip:</strong> This only needs to be done once. Tokens are automatically refreshed when they expire.
+                </div>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <!-- Step 2 -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-number">2</div>
+                    <div>
+                        <span class="step-title">Research Products & Market</span>
+                        <span class="step-badge badge-automated">Automated</span>
+                    </div>
+                </div>
+                <p class="step-description">
+                    Analyze Etsy market trends, competitor listings, and high-performing products. Research helps identify 
+                    what sells, what keywords work, and which niches have opportunity. Use data to inform product decisions.
+                </p>
+                <div class="step-actions">
+                    <a href="/research" class="btn btn-primary">🔍 Research Products</a>
+                    <a href="/docs" class="btn btn-outline">API Documentation</a>
+                </div>
+                <div class="info-box">
+                    <strong>💡 Tip:</strong> Research identifies trending keywords, successful price points, and gaps in the market. Use this data to create better products.
+                </div>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <!-- Step 3 -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-number">3</div>
+                    <div>
+                        <span class="step-title">Create & Improve Products</span>
+                        <span class="step-badge badge-automated">Automated</span>
+                    </div>
+                </div>
+                <p class="step-description">
+                    Use research insights to design products that outperform competitors. Improve on successful concepts by 
+                    adding unique elements, better designs, or enhanced value. Generate designs that convert better.
+                </p>
+                <div class="step-actions">
+                    <a href="/products/create" class="btn btn-primary">🎨 Create Products</a>
+                    <a href="/docs" class="btn btn-outline">View API</a>
+                </div>
+                <div class="info-box">
+                    <strong>Strategy:</strong> Don't just copy - improve! Better designs, clearer messaging, and unique angles outperform similar products.
+                </div>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <!-- Step 4 -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-number">4</div>
+                    <div>
+                        <span class="step-title">Create Printful Products & Mockups</span>
+                        <span class="step-badge badge-automated">Automated</span>
+                    </div>
+                </div>
+                <p class="step-description">
+                    Generate print-on-demand products through Printful. Create mockups for various products (mugs, t-shirts, 
+                    posters, etc.). Generate print-ready files and product images automatically.
+                </p>
+                <div class="step-actions">
+                    <a href="/products/printful" class="btn btn-primary">🖨️ Create Printful Product</a>
+                    <a href="/docs" class="btn btn-outline">Printful API</a>
+                </div>
+                <div class="info-box">
+                    <strong>Note:</strong> Printful handles fulfillment. You design, they print and ship. Mockups are generated automatically.
+                </div>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <!-- Step 5 -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-number">5</div>
+                    <div>
+                        <span class="step-title">Prepare Product Assets</span>
+                        <span class="step-badge badge-optional">Optional</span>
+                    </div>
+                </div>
+                <p class="step-description">
+                    Store product images, mockups, and print files. Assets from Printful can be automatically synced to Google Drive 
+                    or stored locally. Assets are linked to products via SKU.
+                </p>
+                <div class="step-actions">
+                    <a href="/docs#/assets/post_api_assets_upload" class="btn btn-primary">📁 Upload Asset</a>
+                    <a href="/docs" class="btn btn-outline">API Documentation</a>
+                </div>
+                <div class="info-box">
+                    <strong>Automation:</strong> Printful mockups can be automatically saved to Google Drive and linked to your products.
+                </div>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <!-- Step 6 -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-number">6</div>
+                    <div>
+                        <span class="step-title">Create Listing Draft</span>
+                        <span class="step-badge badge-automated">Automated</span>
+                    </div>
+                </div>
+                <p class="step-description">
+                    Create a draft listing with title, description, price, tags, and taxonomy. Use research insights for better SEO. 
+                    The draft is created in Etsy but not published yet - perfect for review before going live.
+                </p>
+                <div class="step-actions">
+                    <a href="/docs#/drafts/post_api_drafts_new" class="btn btn-primary">➕ Create Single Draft</a>
+                    <a href="/docs#/drafts/post_api_drafts_batch" class="btn btn-secondary">📦 Create Batch Drafts</a>
+                    <a href="/drafts" class="btn btn-outline">View Queue</a>
+                </div>
+                <div class="info-box">
+                    <strong>Pro Tip:</strong> Research data informs better titles, descriptions, and tags - leading to higher visibility and sales.
+                </div>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <!-- Step 7 -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-number">7</div>
+                    <div>
+                        <span class="step-title">Upload Listing Images</span>
+                        <span class="step-badge badge-automated">Automated</span>
+                    </div>
+                </div>
+                <p class="step-description">
+                    Add product images to your draft listing. Images from Printful mockups are automatically uploaded. 
+                    You can set a primary image and multiple alternate images showing different views.
+                </p>
+                <div class="step-actions">
+                    <a href="/docs#/drafts/post_api_drafts_new" class="btn btn-primary">📸 Upload Images</a>
+                    <a href="/docs" class="btn btn-outline">API Docs</a>
+                </div>
+                <div class="info-box">
+                    <strong>Automation:</strong> Printful mockups are automatically uploaded when creating drafts. No manual work needed.
+                </div>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <!-- Step 8 -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-number">8</div>
+                    <div>
+                        <span class="step-title">Review Drafts Queue</span>
+                        <span class="step-badge badge-optional">Recommended</span>
+                    </div>
+                </div>
+                <p class="step-description">
+                    Review all your created drafts in the queue. Check titles, prices, and status. Search and filter to find 
+                    specific listings. Copy SEO text to clipboard. Verify research insights were applied correctly.
+                </p>
+                <div class="step-actions">
+                    <a href="/drafts" class="btn btn-primary">📋 View Drafts Queue</a>
+                    <a href="/api/drafts/queue" class="btn btn-outline">View JSON API</a>
+                </div>
+                <div class="info-box">
+                    <strong>Feature:</strong> The queue shows all drafts with status, prices, Printful links, and direct links to Etsy.
+                </div>
+            </div>
+            
+            <div class="arrow">⬇️</div>
+            
+            <!-- Step 9 -->
+            <div class="step">
+                <div class="step-header">
+                    <div class="step-number">9</div>
+                    <div>
+                        <span class="step-title">Publish in Etsy Shop Manager</span>
+                        <span class="step-badge badge-manual">Manual</span>
+                    </div>
+                </div>
+                <p class="step-description">
+                    Final step! Open each draft in Etsy Shop Manager, assign shipping profiles, review details, 
+                    and publish. AutoMerch Lite handles 90% of the work - research, design, Printful setup, and draft creation. 
+                    You just add shipping and click publish.
+                </p>
+                <div class="step-actions">
+                    <a href="https://www.etsy.com/your/shops/me/tools/listings/drafts" target="_blank" class="btn btn-primary">🏪 Open Etsy Drafts</a>
+                    <a href="/drafts" class="btn btn-secondary">Back to Queue</a>
+                </div>
+                <div class="info-box">
+                    <strong>Why Manual?</strong> Etsy's publishing API is unreliable. Manual publishing ensures listings go live without errors. Each listing takes about 30 seconds to review and publish.
+                </div>
+            </div>
+        </div>
+        
+        <div style="margin-top: 40px; padding-top: 24px; border-top: 1px solid #dee2e6; text-align: center;">
+            <h3 style="margin-bottom: 16px; color: #333; transition: color 0.3s ease;" class="dark-mode-text">🎯 Workflow Summary</h3>
+            <p style="color: #6c757d; line-height: 1.8; transition: color 0.3s ease;" class="dark-mode-text-secondary">
+                AutoMerch Lite automates the entire product lifecycle: <strong>research</strong> identifies opportunities, <strong>product creation</strong> improves on competitors, 
+                <strong>Printful integration</strong> handles fulfillment, and <strong>draft automation</strong> creates listings with optimized SEO. 
+                You handle the final review and publishing - giving you control where it matters most while eliminating hours of manual work.
+            </p>
+        </div>
+    </div>
+    
+    <style>
+        body.dark-mode .dark-mode-text {
+            color: #e0e0e0 !important;
+        }
+        
+        body.dark-mode .dark-mode-text-secondary {
+            color: #999 !important;
+        }
+        
+        body.dark-mode div[style*="border-top"] {
+            border-top-color: #555 !important;
+        }
+    </style>
+    
+    <script>
+        // Dark mode functionality
+        function toggleDarkMode() {
+            const body = document.body;
+            const toggle = document.getElementById('dark-mode-toggle');
+            const isDark = body.classList.toggle('dark-mode');
+            
+            toggle.textContent = isDark ? '☀️ Light Mode' : '🌙 Dark Mode';
+            localStorage.setItem('darkMode', isDark ? 'enabled' : 'disabled');
+        }
+        
+        function initDarkMode() {
+            const saved = localStorage.getItem('darkMode');
+            const prefersDark = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+            
+            if (saved === 'enabled' || (saved === null && prefersDark)) {
+                document.body.classList.add('dark-mode');
+                document.getElementById('dark-mode-toggle').textContent = '☀️ Light Mode';
+            }
+        }
+        
+        initDarkMode();
+    </script>
+</body>
+</html>

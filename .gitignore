@@ -1,42 +1,41 @@
-﻿# Python
-__pycache__/
-*.py[cod]
-*.pyo
-*.pyd
-*.so
-*.dylib
-*.egg-info/
-.eggs/
-build/
-dist/
-.tox/
-.nox/
-pip-wheel-metadata/
-.pytest_cache/
-.mypy_cache/
-.coverage*
-htmlcov/
-
-# Environments
-.venv/
-venv/
-env/
-ENV/
+﻿# Add .env to gitignore if not already there
 .env
 
-# Editors/OS
+# Database files
+*.db
+*.db-journal
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
 .vscode/
 .idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+runlogs/
+
+# Media files (can be large)
+media/products/*.jpg
+media/products/*.png
+!media/products/.gitkeep
+
+# Research and generated images
+research_images/
+generated_images/
+
+# OS
 .DS_Store
 Thumbs.db
-
-# Logs/Artifacts
-*.log
-*.zip
-
-# Project duplicates to exclude
-AutoMerch_Starter/
-automerch_pro/
-
-# Local media uploads
-media/

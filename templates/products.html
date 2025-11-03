@@ -1,13 +1,16 @@
-﻿{% extends ' + "'base.html'" + ' %}
+﻿{% extends 'base.html' %}
 {% block content %}
   <h1>Products</h1>
   {% if products %}
-  <table>
+  <form method="post" action="/api/products/bulk/etsy_draft">
+  <div class="table-wrap">\n  <table>
     <thead><tr><th>SKU</th><th>Name</th><th>Price</th><th>Etsy</th><th>Printful</th><th>Actions</th></tr></thead>
     <tbody>
       {% for p in products %}
         <tr>
-          <td>{{ p.sku }}</td>
+          <td>
+            <label><input type="checkbox" name="skus" value="{{ p.sku }}" /> {{ p.sku }}</label>
+          </td>
           <td>{{ p.name or '' }}</td>
           <td>{{ '%.2f' % p.price if p.price is not none else '' }}</td>
           <td>{{ p.etsy_listing_id or '' }}</td>
@@ -34,6 +37,57 @@
                 <input type="file" name="image" accept="image/*" />
                 <button type="submit">Upload Image</button>
               </form>
+              <details style="margin-top:6px">
+                <summary>Variants</summary>
+                <form method="post" action="/api/products/variants/add" style="margin-top:6px">
+                  <input type="hidden" name="sku" value="{{ p.sku }}" />
+                  <input type="text" name="size" placeholder="Size (e.g., M)" />
+                  <input type="text" name="color" placeholder="Color (e.g., Black)" />
+                  <input type="text" name="printful_variant_id" placeholder="Printful variant id (optional)" />
+                  <button type="submit">Add Variant</button>
+                </form>
+                {% set list = variants_map.get(p.sku) or [] %}
+                {% if list %}
+                <ul>
+                  {% for v in list %}
+                    <li>#{{ v.id }} — {{ v.size or 'ONE' }} / {{ v.color or 'NA' }} — PF: {{ v.printful_variant_id or '' }}
+                      <form method="post" action="/api/products/variants/delete" style="display:inline">
+                        <input type="hidden" name="id" value="{{ v.id }}" />
+                        <button type="submit">Delete</button>
+                      </form>
+                    </li>
+                  {% endfor %}
+                </ul>
+                {% else %}
+                  <p style="opacity:0.7;">No variants defined.</p>
+                {% endif %}
+                <form method="post" action="/api/products/variants/add_matrix" style="margin-top:6px">
+                  <input type="hidden" name="sku" value="{{ p.sku }}" />
+                  <div>
+                    <strong>Quick Add Matrix</strong>
+                  </div>
+                  <div>
+                    Sizes:
+                    {% for s in ['S','M','L','XL','XXL'] %}
+                      <label><input type="checkbox" name="sizes" value="{{ s }}" /> {{ s }}</label>
+                    {% endfor %}
+                  </div>
+                  <div style="margin-top:4px;">
+                    Colors:
+                    {% for c in ['Black','White','Navy'] %}
+                      <label><input type="checkbox" name="colors" value="{{ c }}" /> {{ c }}</label>
+                    {% endfor %}
+                  </div>
+                  <div style="margin-top:4px;">
+                    <button type="submit">Add Matrix</button>
+                    <a href="/variants/map" style="margin-left:8px;">Edit Variant Mapping</a>
+                  </div>
+                </form>
+              </details>
+              <form method="post" action="/api/products/generate_copy" style="margin-top:6px">
+                <input type="hidden" name="sku" value="{{ p.sku }}" />
+                <button type="submit">Generate Copy (ChatGPT)</button>
+              </form>
               <form method="post" action="/api/products/etsy" style="margin-top:6px">
                 <input type="hidden" name="sku" value="{{ p.sku }}" />
                 <button type="submit">List to Etsy (draft)</button>
@@ -49,6 +103,10 @@
                 <button type="submit">Create in Printful</button>
               </form>
             </details>
+            <form method="post" action="/api/products/etsy" style="display:inline;margin-right:6px">
+              <input type="hidden" name="sku" value="{{ p.sku }}" />
+              <button type="submit">List Draft</button>
+            </form>
             <form method="post" action="/api/products/delete" style="display:inline">
               <input type="hidden" name="sku" value="{{ p.sku }}" />
               <button type="submit">Delete</button>
@@ -57,7 +115,13 @@
         </tr>
       {% endfor %}
     </tbody>
-  </table>
+    </table>\n</div>
+  <div style="margin:8px 0;">
+    <button type="submit">Bulk: Etsy Draft</button>
+    <button type="submit" formaction="/api/products/bulk/etsy_publish">Bulk: Etsy Publish</button>
+    <button type="submit" formaction="/api/products/bulk/printful">Bulk: Printful Create</button>
+  </div>
+  </form>
   {% else %}
     <p>No products yet.</p>
   {% endif %}
@@ -77,4 +141,6 @@
     <button type="submit">Add</button>
   </form>
 {% endblock %}
+
+
 

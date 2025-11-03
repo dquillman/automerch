@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - AutoMerch Lite</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+            transition: background 0.3s ease;
+        }
+        body.dark-mode { background: #1a1a1a; color: #e0e0e0; }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .nav { background: #2d2d2d; padding: 16px 24px; margin-bottom: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+        .nav a { color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s; }
+        .nav a:hover { background: #3d3d3d; }
+        .settings-card {
+            background: white;
+            padding: 32px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 24px;
+        }
+        body.dark-mode .settings-card { background: #2d2d2d; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 500;
+        }
+        body.dark-mode .form-group label { color: #e0e0e0; }
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            background: white;
+            color: #333;
+        }
+        body.dark-mode .form-group input {
+            background: #3d3d3d;
+            border-color: #555;
+            color: #e0e0e0;
+        }
+        .info-text {
+            color: #6c757d;
+            font-size: 14px;
+            margin-top: 4px;
+        }
+        body.dark-mode .info-text { color: #999; }
+        .btn-primary {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        .btn-primary:hover { background: #0056b3; }
+        body.dark-mode .btn-primary { background: #4d9fff; }
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+        .btn-secondary:hover { background: #5a6268; }
+        .shop-item {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 6px;
+            margin-bottom: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        body.dark-mode .shop-item { background: #3d3d3d; }
+        .shop-info {
+            flex: 1;
+        }
+        .shop-name {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #333;
+        }
+        body.dark-mode .shop-name { color: #e0e0e0; }
+        .shop-meta {
+            font-size: 12px;
+            color: #6c757d;
+        }
+        body.dark-mode .shop-meta { color: #999; }
+        .shop-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        .badge-default {
+            background: #28a745;
+            color: white;
+        }
+        .badge-active {
+            background: #17a2b8;
+            color: white;
+        }
+        .shop-actions {
+            display: flex;
+            gap: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <nav class="nav">
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <a href="/" style="color: #fff; font-size: 20px; font-weight: 600;">🚀 AutoMerch Lite</a>
+                <a href="/" style="background: #007bff; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: 500;">🏠 Home</a>
+                <a href="/workflow">Workflow</a>
+                <a href="/research">Research</a>
+                <a href="/drafts">Drafts</a>
+                <a href="/settings" style="color: #4d9fff;">Settings</a>
+            </div>
+            <button onclick="toggleDarkMode()" id="dark-toggle" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🌙 Dark</button>
+        </nav>
+
+        <h1 style="margin-bottom: 24px; color: #333; transition: color 0.3s;" class="dark-text">⚙️ Settings</h1>
+
+        <div class="settings-card" style="border-left: 4px solid #007bff;">
+            <h2 style="margin-bottom: 16px; color: #333; transition: color 0.3s; display: flex; align-items: center; gap: 8px;" class="dark-text">
+                🏪 Etsy Shops Management
+                <span style="font-size: 12px; font-weight: normal; color: #007bff;">NEW</span>
+            </h2>
+            <p style="color: #6c757d; margin-bottom: 16px;" class="dark-text-secondary">
+                Manage multiple Etsy shops. Connect each shop via OAuth and set a default shop.
+            </p>
+            
+            <div id="shops-list" style="margin-bottom: 20px;">
+                <div style="text-align: center; padding: 20px; color: #6c757d;">Loading shops...</div>
+            </div>
+            
+            <div class="form-group">
+                <label>Add New Shop</label>
+                <div style="display: flex; gap: 8px;">
+                    <input type="text" id="new-shop-id" placeholder="Shop ID (optional - will auto-detect from OAuth)" style="flex: 1;">
+                    <button onclick="addShop()" class="btn-primary" style="padding: 10px 20px;">Add Shop</button>
+                    <a href="/auth/etsy/login" class="btn-primary" style="text-decoration: none; display: inline-block; padding: 10px 20px;">🔐 Connect via OAuth</a>
+                </div>
+                <div class="info-text">Connect a shop via OAuth to automatically add it, or manually enter a shop ID</div>
+            </div>
+        </div>
+
+        <div class="settings-card">
+            <h2 style="margin-bottom: 16px; color: #333; transition: color 0.3s;" class="dark-text">Etsy Configuration (Legacy)</h2>
+            <div class="form-group">
+                <label>Default Etsy Shop ID</label>
+                <input type="text" id="shop_id" placeholder="Your Etsy shop ID">
+                <div class="info-text">Legacy setting - prefer using Shop Management above</div>
+            </div>
+        </div>
+
+        <div class="settings-card">
+            <h2 style="margin-bottom: 16px; color: #333; transition: color 0.3s;" class="dark-text">Application Settings</h2>
+            <div class="form-group">
+                <label>Dry Run Mode</label>
+                <input type="checkbox" id="dry_run" checked>
+                <div class="info-text">When enabled, no actual API calls are made (safe for testing)</div>
+            </div>
+        </div>
+
+        <div class="settings-card">
+            <h2 style="margin-bottom: 16px; color: #333; transition: color 0.3s;" class="dark-text">API Documentation</h2>
+            <p style="color: #6c757d; margin-bottom: 16px;" class="dark-text-secondary">
+                View complete API documentation and test endpoints:
+            </p>
+            <a href="/docs" style="color: #007bff; text-decoration: none;" class="btn-primary" style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; border-radius: 4px;">📖 Open API Docs</a>
+        </div>
+    </div>
+
+    <script>
+        function toggleDarkMode() {
+            document.body.classList.toggle('dark-mode');
+            localStorage.setItem('darkMode', document.body.classList.contains('dark-mode') ? 'enabled' : 'disabled');
+            document.getElementById('dark-toggle').textContent = document.body.classList.contains('dark-mode') ? '☀️ Light' : '🌙 Dark';
+        }
+
+        if (localStorage.getItem('darkMode') === 'enabled') {
+            document.body.classList.add('dark-mode');
+            document.getElementById('dark-toggle').textContent = '☀️ Light';
+        }
+
+        // Load shops on page load
+        async function loadShops() {
+            try {
+                console.log('Loading shops from /api/shops...');
+                const response = await fetch('/api/shops');
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                const shops = await response.json();
+                console.log('Loaded shops:', shops);
+                
+                const shopsList = document.getElementById('shops-list');
+                if (shops.length === 0) {
+                    shopsList.innerHTML = `
+                        <div style="text-align: center; padding: 20px; color: #6c757d;">
+                            <p>No shops configured yet.</p>
+                            <p style="margin-top: 8px;">Click "Connect via OAuth" to add your first shop.</p>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                shopsList.innerHTML = shops.map(shop => `
+                    <div class="shop-item">
+                        <div class="shop-info">
+                            <div class="shop-name">
+                                ${shop.shop_name || shop.shop_id}
+                                ${shop.is_default ? '<span class="shop-badge badge-default">Default</span>' : ''}
+                                ${shop.is_active ? '<span class="shop-badge badge-active">Active</span>' : ''}
+                            </div>
+                            <div class="shop-meta">
+                                ID: ${shop.shop_id}
+                                ${shop.shop_url ? ` | <a href="${shop.shop_url}" target="_blank" style="color: #007bff;">View Shop</a>` : ''}
+                            </div>
+                        </div>
+                        <div class="shop-actions">
+                            ${!shop.is_default ? `<button onclick="setDefaultShop('${shop.shop_id}')" class="btn-secondary">Set Default</button>` : ''}
+                            ${!shop.is_active ? `<button onclick="activateShop('${shop.shop_id}')" class="btn-secondary">Activate</button>` : ''}
+                            <button onclick="deleteShop('${shop.shop_id}')" class="btn-secondary" style="background: #dc3545;">Delete</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                document.getElementById('shops-list').innerHTML = `
+                    <div style="color: #dc3545; padding: 12px; background: #f8d7da; border-radius: 4px;">
+                        Error loading shops: ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        async function addShop() {
+            const shopId = document.getElementById('new-shop-id').value.trim();
+            if (!shopId) {
+                alert('Please enter a shop ID');
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/shops', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        shop_id: shopId,
+                        is_active: true
+                    })
+                });
+                
+                if (response.ok) {
+                    document.getElementById('new-shop-id').value = '';
+                    loadShops();
+                    alert('Shop added successfully! Now connect via OAuth to enable it.');
+                } else {
+                    throw new Error('Failed to add shop');
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+        
+        async function setDefaultShop(shopId) {
+            try {
+                const response = await fetch(`/api/shops/${shopId}/set-default`, {
+                    method: 'POST'
+                });
+                
+                if (response.ok) {
+                    loadShops();
+                } else {
+                    throw new Error('Failed to set default shop');
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+        
+        async function activateShop(shopId) {
+            try {
+                const response = await fetch('/api/shops', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        shop_id: shopId,
+                        is_active: true
+                    })
+                });
+                
+                if (response.ok) {
+                    loadShops();
+                } else {
+                    throw new Error('Failed to activate shop');
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+        
+        async function deleteShop(shopId) {
+            if (!confirm(`Are you sure you want to delete shop ${shopId}? This will also delete associated OAuth tokens.`)) {
+                return;
+            }
+            
+            try {
+                const response = await fetch(`/api/shops/${shopId}`, {
+                    method: 'DELETE'
+                });
+                
+                if (response.ok) {
+                    loadShops();
+                } else {
+                    throw new Error('Failed to delete shop');
+                }
+            } catch (error) {
+                alert(`Error: ${error.message}`);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (document.body.classList.contains('dark-mode')) {
+                document.querySelectorAll('.dark-text').forEach(el => el.style.color = '#e0e0e0');
+                document.querySelectorAll('.dark-text-secondary').forEach(el => el.style.color = '#999');
+            }
+            loadShops();
+        });
+    </script>
+</body>
+</html>
+

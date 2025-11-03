@@ -1,5 +1,6 @@
 ﻿import os
 import requests
+from http_client import request as http_request
 from pathlib import Path
 
 DRY_RUN = os.getenv("AUTOMERCH_DRY_RUN", "true").lower() == "true"
@@ -36,7 +37,7 @@ def create_listing_draft(product: dict) -> str:
         "is_personalizable": False,
     }
     url = f"{BASE_URL}/shops/{ETSY_SHOP_ID}/listings"
-    r = requests.post(url, headers=_headers(), json=payload, timeout=30)
+    r = http_request("POST", url, headers=_headers(), json=payload, timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy error {r.status_code}: {r.text}")
     data = r.json()
@@ -48,7 +49,7 @@ def publish_listing(listing_id: str) -> bool:
     if DRY_RUN:
         return True
     url = f"{BASE_URL}/listings/{listing_id}"
-    r = requests.patch(url, headers=_headers(), json={"state": "active"}, timeout=30)
+    r = http_request("PATCH", url, headers=_headers(), json={"state": "active"}, timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy publish error {r.status_code}: {r.text}")
     return True
@@ -58,7 +59,7 @@ def upload_listing_image_from_url(listing_id: str, image_url: str) -> bool:
     if DRY_RUN:
         return True
     # Download image then upload via multipart
-    resp = requests.get(image_url, timeout=30)
+    resp = http_request("GET", image_url, timeout=30)
     resp.raise_for_status()
     return _upload_listing_image_bytes(listing_id, resp.content, file_name=Path(image_url).name or "image.jpg")
 
@@ -76,7 +77,7 @@ def _upload_listing_image_bytes(listing_id: str, data: bytes, file_name: str) ->
     headers = _headers()
     headers.pop("Content-Type", None)
     files = {"image": (file_name, data, "application/octet-stream")}
-    r = requests.post(url, headers=headers, files=files, timeout=60)
+    r = http_request("POST", url, headers=headers, files=files, timeout=60)
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy image upload error {r.status_code}: {r.text}")
     return True
@@ -89,7 +90,7 @@ def update_listing(listing_id: str, fields: dict) -> bool:
     allowed = {k: fields[k] for k in ("title", "description", "who_made", "when_made", "is_supply") if k in fields and fields[k] is not None}
     if not allowed:
         return True
-    r = requests.patch(url, headers=_headers(), json=allowed, timeout=30)
+    r = http_request("PATCH", url, headers=_headers(), json=allowed, timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy update error {r.status_code}: {r.text}")
     return True
@@ -110,7 +111,78 @@ def update_listing_price(listing_id: str, price: float, currency: str = "USD", q
             }
         ]
     }
-    r = requests.put(url, headers=_headers(), json=body, timeout=30)
+    r = http_request("PUT", url, headers=_headers(), json=body, timeout=30)
     if r.status_code >= 400:
         raise RuntimeError(f"Etsy inventory error {r.status_code}: {r.text}")
     return True
+
+
+def search_listings(keywords: str, limit: int = 50, offset: int = 0, sort_on: str = "score") -> list[dict]:
+    """Search active Etsy listings for given keywords.
+
+    Note: Etsy API may change; this uses the public v3 application listings search.
+    """
+    if DRY_RUN:
+        # Return a small mock when dry-run to allow downstream logic to work.
+        # Include mock images so image download can be tested
+        return [
+            {
+                "listing_id": 1, 
+                "title": f"{keywords} Funny Gift Mug", 
+                "price": {"amount": 1599, "currency_code": "USD"}, 
+                "tags": ["mug", "funny", "gift"],
+                "images": [
+                    {
+                        "url_570xN": "https://via.placeholder.com/570x570/FF6B6B/ffffff?text=Funny+Gift+Mug",
+                        "url_fullxfull": "https://via.placeholder.com/800x800/FF6B6B/ffffff?text=Funny+Gift+Mug+Full",
+                        "url": "https://via.placeholder.com/570x570/FF6B6B/ffffff?text=Funny+Gift+Mug"
+                    }
+                ],
+                "url_570xN": "https://via.placeholder.com/570x570/FF6B6B/ffffff?text=Funny+Gift+Mug",
+            },
+            {
+                "listing_id": 2, 
+                "title": f"{keywords} Minimalist T-Shirt", 
+                "price": {"amount": 2199, "currency_code": "USD"}, 
+                "tags": ["t-shirt", "minimal", "unisex"],
+                "images": [
+                    {
+                        "url_570xN": "https://via.placeholder.com/570x570/4ECDC4/ffffff?text=Minimalist+T-Shirt",
+                        "url_fullxfull": "https://via.placeholder.com/800x800/4ECDC4/ffffff?text=Minimalist+T-Shirt+Full",
+                        "url": "https://via.placeholder.com/570x570/4ECDC4/ffffff?text=Minimalist+T-Shirt"
+                    }
+                ],
+                "url_570xN": "https://via.placeholder.com/570x570/4ECDC4/ffffff?text=Minimalist+T-Shirt",
+            },
+            {
+                "listing_id": 3,
+                "title": f"{keywords} Custom Print",
+                "price": {"amount": 2499, "currency_code": "USD"},
+                "tags": ["custom", "print", "design"],
+                "images": [
+                    {
+                        "url_570xN": "https://via.placeholder.com/570x570/95E1D3/ffffff?text=Custom+Print",
+                        "url_fullxfull": "https://via.placeholder.com/800x800/95E1D3/ffffff?text=Custom+Print+Full",
+                        "url": "https://via.placeholder.com/570x570/95E1D3/ffffff?text=Custom+Print"
+                    }
+                ],
+            },
+        ]
+    params = {
+        "keywords": keywords,
+        "limit": limit,
+        "offset": offset,
+        "sort_on": sort_on,
+        # "category": category,  # optionally add category filtering
+    }
+    url = f"{BASE_URL}/listings/active"
+    r = http_request("GET", url, headers=_headers(), params=params, timeout=30)
+    if r.status_code >= 400:
+        raise RuntimeError(f"Etsy search error {r.status_code}: {r.text}")
+    data = r.json()
+    # Some responses return { "results": [...] }, others top-level list
+    if isinstance(data, dict) and "results" in data:
+        return data["results"] or []
+    if isinstance(data, list):
+        return data
+    return []

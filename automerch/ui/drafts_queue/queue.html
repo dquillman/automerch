@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Drafts Queue - AutoMerch Lite</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <style>
+        .drafts-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        .drafts-table th,
+        .drafts-table td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+        .drafts-table th {
+            background-color: #f4f4f4;
+            font-weight: 600;
+        }
+        .status-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-draft {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .status-active {
+            background-color: #28a745;
+            color: #fff;
+        }
+        .status-error {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 8px;
+        }
+        .btn-primary {
+            background-color: #007bff;
+            color: #fff;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+            color: #fff;
+        }
+        .btn:hover {
+            opacity: 0.9;
+        }
+        .nav { background: #2d2d2d; padding: 16px 24px; margin-bottom: 24px; border-radius: 8px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+        .nav a { color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s; }
+        .nav a:hover { background: #3d3d3d; }
+    </style>
+</head>
+<body>
+    <div style="padding: 20px;">
+        <nav class="nav">
+            <div style="display: flex; align-items: center; gap: 24px;">
+                <a href="/" style="color: #fff; font-size: 20px; font-weight: 600;">🚀 AutoMerch Lite</a>
+                <a href="/" style="background: #007bff; color: white; padding: 8px 16px; border-radius: 4px; text-decoration: none; font-weight: 500;">🏠 Home</a>
+                <a href="/workflow">Workflow</a>
+                <a href="/research">Research</a>
+                <a href="/products/create">Products</a>
+                <a href="/drafts" style="color: #4d9fff;">Drafts</a>
+                <a href="/analytics">Analytics</a>
+            </div>
+            <button onclick="toggleDarkMode()" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🌙 Dark</button>
+        </nav>
+    </div>
+    <div class="container">
+        <h1>Drafts Queue</h1>
+        
+        <div id="loading">Loading drafts...</div>
+        <div id="error" style="display: none; color: red;"></div>
+        
+        <table class="drafts-table" id="drafts-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>Title</th>
+                    <th>SKU</th>
+                    <th>Price</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="drafts-tbody">
+            </tbody>
+        </table>
+    </div>
+    
+    <script src="/static/script.js"></script>
+    <script>
+        async function loadDrafts() {
+            try {
+                const response = await fetch('/api/drafts/queue');
+                const drafts = await response.json();
+                
+                const tbody = document.getElementById('drafts-tbody');
+                tbody.innerHTML = '';
+                
+                drafts.forEach(draft => {
+                    const row = document.createElement('tr');
+                    
+                    const statusClass = `status-${draft.status}`;
+                    const statusBadge = `<span class="status-badge ${statusClass}">${draft.status}</span>`;
+                    
+                    row.innerHTML = `
+                        <td>${escapeHtml(draft.title)}</td>
+                        <td>${escapeHtml(draft.sku)}</td>
+                        <td>$${draft.price.toFixed(2)}</td>
+                        <td>${statusBadge}</td>
+                        <td>
+                            <a href="${draft.etsy_url}" target="_blank" class="btn btn-primary">Open in Etsy</a>
+                            <button class="btn btn-secondary" onclick="copySEO('${escapeHtml(draft.title)}', '${escapeHtml(draft.description || '')}')">Copy SEO</button>
+                        </td>
+                    `;
+                    tbody.appendChild(row);
+                });
+                
+                document.getElementById('drafts-table').style.display = 'table';
+                document.getElementById('loading').style.display = 'none';
+            } catch (error) {
+                document.getElementById('error').textContent = 'Error loading drafts: ' + error.message;
+                document.getElementById('error').style.display = 'block';
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+        
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+        
+        function copySEO(title, description) {
+            const text = `${title}\n\n${description}`;
+            navigator.clipboard.writeText(text).then(() => {
+                alert('SEO text copied to clipboard!');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        }
+        
+        // Load drafts on page load
+        loadDrafts();
+    </script>
+</body>
+</html>
+
+

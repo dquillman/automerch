@@ -8,7 +8,10 @@
       <option value="prune_scale">Prune/Scale</option>
       <option value="weekly_report">Weekly Report</option>
       <option value="intake_to_assets">Intake to Assets</option>
+      <option value="sync_prices">Sync Prices (dry run)</option>
+      <option value="sync_inventory">Sync Inventory (dry run)</option>
     </select>
     <button type="submit">Run</button>
   </form>
+  <p style="opacity:0.8;">Use DRY_RUN=true for safe testing. Pricing job enforces .99 endings.</p>
 {% endblock %}
