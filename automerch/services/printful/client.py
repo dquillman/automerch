@@ -1,7 +1,7 @@
 """Printful API client."""
 
 import logging
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
 
