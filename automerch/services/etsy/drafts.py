@@ -1,7 +1,7 @@
 """Etsy draft listing service."""
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Any, Optional
 from pathlib import Path
 
 from .client import EtsyClient
@@ -26,10 +26,10 @@ class EtsyDraftsService:
         description: str,
         price: float,
         taxonomy_id: int = 6947,  # Coffee mugs default
-        tags: Optional[List[str]] = None,
-        images: Optional[List[str]] = None,
+        tags: Optional[list[str]] = None,
+        images: Optional[list[str]] = None,
         **kwargs
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Create a draft listing with images.
         
         Args:
@@ -84,9 +84,9 @@ class EtsyDraftsService:
     def create_draft_from_product(
         self,
         sku: str,
-        product_data: Dict[str, Any],
-        images: Optional[List[str]] = None
-    ) -> Dict[str, Any]:
+        product_data: dict[str, Any],
+        images: Optional[list[str]] = None
+    ) -> dict[str, Any]:
         """Create draft from product data.
         
         Args:

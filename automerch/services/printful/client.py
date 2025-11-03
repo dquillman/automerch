@@ -1,7 +1,7 @@
 """Printful API client."""
 
 import logging
-from typing import Optional, Dict, Any, List
+from typing import Optional, Any
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -22,7 +22,7 @@ class PrintfulClient:
         self.api_key = api_key or settings.PRINTFUL_API_KEY
         self.base_url = settings.PRINTFUL_API_BASE
     
-    def _headers(self) -> Dict[str, str]:
+    def _headers(self) -> dict[str, str]:
         """Get HTTP headers for API requests."""
         if not self.api_key:
             if settings.AUTOMERCH_DRY_RUN:
@@ -42,8 +42,8 @@ class PrintfulClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[Dict] = None,
-        json_data: Optional[Dict] = None,
+        params: Optional[dict] = None,
+        json_data: Optional[dict] = None,
         timeout: int = 60
     ) -> requests.Response:
         """Make authenticated HTTP request to Printful API.
@@ -101,9 +101,9 @@ class PrintfulClient:
             return response
             
         except requests.exceptions.Timeout as e:
-            raise RuntimeError(f"Printful API request timeout: {e}")
+            raise RuntimeError(f"Printful API request timeout: {e}") from e
         except requests.exceptions.RequestException as e:
-            raise RuntimeError(f"Printful API request failed: {e}")
+            raise RuntimeError(f"Printful API request failed: {e}") from e
     
     def create_product(
         self,
@@ -174,8 +174,8 @@ class PrintfulClient:
         name: str,
         thumbnail: str,
         sku: str,
-        variants: List[Dict[str, Any]]
-    ) -> List[Dict[str, Any]]:
+        variants: list[dict[str, Any]]
+    ) -> list[dict[str, Any]]:
         """Create a product with multiple variants.
         
         Args:
@@ -215,7 +215,7 @@ class PrintfulClient:
         
         return output
     
-    def get_product(self, product_id: int) -> Dict[str, Any]:
+    def get_product(self, product_id: int) -> dict[str, Any]:
         """Get sync product details.
         
         Args:
@@ -227,7 +227,7 @@ class PrintfulClient:
         response = self._request("GET", f"/store/products/{product_id}")
         return response.json().get("result", {})
     
-    def get_product_variants(self, product_id: int) -> List[Dict[str, Any]]:
+    def get_product_variants(self, product_id: int) -> list[dict[str, Any]]:
         """Get all variants for a sync product.
         
         Args:
@@ -241,7 +241,7 @@ class PrintfulClient:
         variants = product.get("sync_variants", [])
         return variants
     
-    def get_catalog_variants(self, product_id: int) -> List[Dict[str, Any]]:
+    def get_catalog_variants(self, product_id: int) -> list[dict[str, Any]]:
         """Get available catalog variants for a product template.
         
         Args:
@@ -277,7 +277,7 @@ class PrintfulClient:
         sync_variant_id: Optional[int] = None,
         format: str = "jpg",
         width: int = 1000
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Generate product mockup.
         
         Args:
@@ -315,7 +315,7 @@ class PrintfulClient:
             "placement": result.get("placement", "front")
         }
     
-    def get_store_info(self) -> Dict[str, Any]:
+    def get_store_info(self) -> dict[str, Any]:
         """Get store information and metrics.
         
         Returns:
@@ -338,7 +338,7 @@ class PrintfulClient:
             "website": result.get("website")
         }
     
-    def get_orders(self, limit: int = 10, offset: int = 0) -> List[Dict[str, Any]]:
+    def get_orders(self, limit: int = 10, offset: int = 0) -> list[dict[str, Any]]:
         """Get store orders.
         
         Args:

@@ -2,7 +2,7 @@
 
 import logging
 import os
-from typing import List, Optional, Dict, Any
+from typing import Optional, Any
 import requests
 import base64
 from io import BytesIO
@@ -35,7 +35,7 @@ class ImageGenerator:
         aspect_ratio: str = "1:1",
         reference_image_url: Optional[str] = None,
         reference_image_base64: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Generate product images based on a prompt.
         
         Args:
@@ -81,7 +81,7 @@ class ImageGenerator:
             logger.error(f"Image generation failed: {e}")
             raise
     
-    def _generate_with_imagen(self, prompt: str, count: int, style: str, aspect_ratio: str, reference_image_url: Optional[str] = None, reference_image_base64: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _generate_with_imagen(self, prompt: str, count: int, style: str, aspect_ratio: str, reference_image_url: Optional[str] = None, reference_image_base64: Optional[str] = None) -> list[dict[str, Any]]:
         """Generate images using Google Gemini image generation.
         
         Note: Google Gemini now supports image generation via the gemini-2.5-flash-image model.
@@ -173,7 +173,7 @@ class ImageGenerator:
             logger.error(f"Gemini image generation error: {e}")
             return self._generate_mock_images(prompt, count, style, aspect_ratio)
     
-    def _generate_with_dalle(self, prompt: str, count: int, style: str, aspect_ratio: str, reference_image_url: Optional[str] = None, reference_image_base64: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _generate_with_dalle(self, prompt: str, count: int, style: str, aspect_ratio: str, reference_image_url: Optional[str] = None, reference_image_base64: Optional[str] = None) -> list[dict[str, Any]]:
         """Generate images using OpenAI DALL-E API."""
         try:
             import openai
@@ -217,7 +217,7 @@ class ImageGenerator:
             logger.error(f"DALL-E generation error: {e}")
             return self._generate_mock_images(prompt, count, style, aspect_ratio)
     
-    def _generate_with_stability(self, prompt: str, count: int, style: str, aspect_ratio: str, reference_image_url: Optional[str] = None, reference_image_base64: Optional[str] = None) -> List[Dict[str, Any]]:
+    def _generate_with_stability(self, prompt: str, count: int, style: str, aspect_ratio: str, reference_image_url: Optional[str] = None, reference_image_base64: Optional[str] = None) -> list[dict[str, Any]]:
         """Generate images using Stability AI API."""
         try:
             headers = {"Authorization": f"Bearer {self.api_key}"}
@@ -278,7 +278,7 @@ class ImageGenerator:
             logger.error(f"Stability AI generation error: {e}")
             return self._generate_mock_images(prompt, count, style, aspect_ratio)
     
-    def _generate_mock_images(self, prompt: str, count: int, style: str, aspect_ratio: str) -> List[Dict[str, Any]]:
+    def _generate_mock_images(self, prompt: str, count: int, style: str, aspect_ratio: str) -> list[dict[str, Any]]:
         """Generate mock placeholder images."""
         return [
             {

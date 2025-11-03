@@ -1,7 +1,7 @@
 """Google Drive API client."""
 
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 from pathlib import Path
 
 from ...core.settings import settings

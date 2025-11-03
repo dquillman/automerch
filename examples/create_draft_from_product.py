@@ -6,6 +6,7 @@ Usage:
 """
 
 import sys
+import traceback
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -90,7 +91,6 @@ def main():
     
     except Exception as e:
         print(f"\n❌ Unexpected error: {e}")
-        import traceback
         traceback.print_exc()
         return 1
     

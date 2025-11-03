@@ -1,6 +1,6 @@
 """Draft listing routes."""
 
-from typing import List, Optional
+from typing import Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
@@ -19,8 +19,8 @@ class DraftRequest(BaseModel):
     description: str = Field(..., description="Listing description", min_length=1)
     price: float = Field(..., description="Price in USD", gt=0)
     taxonomy_id: int = Field(default=6947, description="Etsy taxonomy ID (6947 = coffee mugs)")
-    tags: List[str] = Field(default_factory=list, description="Product tags")
-    images: Optional[List[str]] = Field(default=None, description="List of image URLs")
+    tags: list[str] = Field(default_factory=list, description="Product tags")
+    images: Optional[list[str]] = Field(default=None, description="List of image URLs")
     shop_id: Optional[str] = Field(default=None, description="Etsy shop ID (uses default if not provided)")
     
     class Config:
@@ -39,7 +39,7 @@ class DraftRequest(BaseModel):
 
 class BatchDraftRequest(BaseModel):
     """Request model for batch draft creation."""
-    drafts: List[DraftRequest]
+    drafts: list[DraftRequest]
 
 
 class DraftResponse(BaseModel):
@@ -131,7 +131,7 @@ def create_draft(request: DraftRequest, client: EtsyClientDep):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/batch", response_model=List[DraftResponse])
+@router.post("/batch", response_model=list[DraftResponse])
 def create_batch_drafts(request: BatchDraftRequest, client: EtsyClientDep):
     """Create multiple draft listings.
     

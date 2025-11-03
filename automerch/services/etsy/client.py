@@ -2,7 +2,7 @@
 
 import time
 import logging
-from typing import Optional, Dict, Any
+from typing import Optional, Any
 import requests
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -40,7 +40,7 @@ class EtsyClient:
                     f"No Etsy access token for shop {shop_id or 'default'}. Connect via OAuth or set ETSY_ACCESS_TOKEN."
                 )
     
-    def _headers(self) -> Dict[str, str]:
+    def _headers(self) -> dict[str, str]:
         """Get HTTP headers for API requests."""
         return {
             "Authorization": f"Bearer {self.access_token}",
@@ -56,9 +56,9 @@ class EtsyClient:
         self,
         method: str,
         endpoint: str,
-        params: Optional[Dict] = None,
-        json_data: Optional[Dict] = None,
-        files: Optional[Dict] = None,
+        params: Optional[dict] = None,
+        json_data: Optional[dict] = None,
+        files: Optional[dict] = None,
         timeout: int = 30,
         retries: int = 3
     ) -> requests.Response:
@@ -181,7 +181,7 @@ class EtsyClient:
             raise last_exception
         raise RuntimeError(f"Request failed after {retries} attempts")
     
-    def create_listing_draft(self, payload: Dict[str, Any]) -> str:
+    def create_listing_draft(self, payload: dict[str, Any]) -> str:
         """Create a draft listing on Etsy.
         
         Args:
@@ -274,7 +274,7 @@ class EtsyClient:
         
         return response.status_code < 400
     
-    def get_listing(self, listing_id: str) -> Dict[str, Any]:
+    def get_listing(self, listing_id: str) -> dict[str, Any]:
         """Get listing details.
         
         Args:
@@ -286,7 +286,7 @@ class EtsyClient:
         response = self._request("GET", f"/listings/{listing_id}")
         return response.json()
     
-    def update_listing(self, listing_id: str, fields: Dict[str, Any]) -> bool:
+    def update_listing(self, listing_id: str, fields: dict[str, Any]) -> bool:
         """Update listing fields.
         
         Args:

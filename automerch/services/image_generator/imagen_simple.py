@@ -12,7 +12,7 @@ For easiest setup, use OpenAI DALL-E instead:
 import os
 import requests
 import base64
-from typing import List, Dict, Any
+from typing import Any
 import logging
 
 logger = logging.getLogger(__name__)
@@ -23,7 +23,7 @@ def generate_with_imagen_simple(
     count: int,
     api_key: str,
     project_id: str = None
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Simple Imagen generation via Vertex AI.
     
     Requires:

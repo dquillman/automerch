@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import Optional, Any
 import time
 
 from ...services.image_generator.client import ImageGenerator
@@ -18,7 +18,7 @@ class GenerateImageRequest(BaseModel):
     count: int = 5
     style: str = "professional"
     aspect_ratio: str = "1:1"
-    research_data: Optional[Dict[str, Any]] = None  # Optional research insights to enhance prompt
+    research_data: Optional[dict[str, Any]] = None  # Optional research insights to enhance prompt
     reference_image_url: Optional[str] = None  # URL of reference image to improve upon
     reference_image_base64: Optional[str] = None  # Base64 encoded reference image
 
@@ -131,7 +131,7 @@ def generate_images(request: GenerateImageRequest):
 @router.post("/generate-from-research")
 def generate_from_research(
     keywords: str,
-    research_data: Dict[str, Any],
+    research_data: dict[str, Any],
     count: int = 5,
     style: str = "professional"
 ):

@@ -4,6 +4,7 @@ import base64
 from pathlib import Path
 from typing import Optional
 import logging
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -52,7 +53,6 @@ def download_image_from_url(url: str, output_path: Path, filename: str) -> Optio
     Returns:
         Path to saved image, or None if failed
     """
-    import requests
     try:
         response = requests.get(url, timeout=10)
         response.raise_for_status()
