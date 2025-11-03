@@ -1,12 +1,12 @@
 import os
 from logging.config import fileConfig
 
-from sqlalchemy import engine_from_config, pool
 from alembic import context
-
 from sqlmodel import SQLModel
-from models import Product, RunLog, OAuthToken, ResearchSnapshot  # import models for autogenerate
+
 from db import engine as app_engine
+# Import models for autogenerate (kept for alembic autogenerate to work)
+from models import OAuthToken, Product, ResearchSnapshot, RunLog  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

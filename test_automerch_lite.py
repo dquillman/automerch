@@ -11,6 +11,7 @@ Tests all components:
 
 import sys
 import os
+import traceback
 from pathlib import Path
 
 # Add current directory to path
@@ -34,7 +35,6 @@ def test_imports():
         return True
     except Exception as e:
         print(f"❌ Import failed: {e}")
-        import traceback
         traceback.print_exc()
         return False
 
@@ -70,7 +70,6 @@ def test_database():
         return True
     except Exception as e:
         print(f"❌ Database test failed: {e}")
-        import traceback
         traceback.print_exc()
         return False
 
@@ -148,7 +147,6 @@ def test_api_app():
         return True
     except Exception as e:
         print(f"❌ API app test failed: {e}")
-        import traceback
         traceback.print_exc()
         return False
 
@@ -178,7 +176,6 @@ def test_draft_creation_dry_run():
         return True
     except Exception as e:
         print(f"❌ Draft creation test failed: {e}")
-        import traceback
         traceback.print_exc()
         return False
 

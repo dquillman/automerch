@@ -366,7 +366,7 @@ def run_research(keywords: str, limit: int = 50) -> Dict[str, Any]:
                     rel_path = str(output_path)
                 return rel_path, base64_data
             except ImportError:
-                print(f"[Research] PIL/Pillow not installed. Install with: pip install Pillow")
+                print("[Research] PIL/Pillow not installed. Install with: pip install Pillow")
                 return None, None
             except Exception as e:
                 print(f"[Research] Error creating placeholder: {e}")
@@ -409,9 +409,9 @@ def run_research(keywords: str, limit: int = 50) -> Dict[str, Any]:
                         relative_path = str(local_image_path)
                 else:
                     raise Exception(f"HTTP {response.status_code}")
-            except Exception as e:
+            except Exception:
                 # If download fails, create placeholder image
-                print(f"[Research] Download failed, creating placeholder image...")
+                print("[Research] Download failed, creating placeholder image...")
                 filename = f"{listing_id}_{safe_title}_placeholder.jpg"
                 placeholder_path = images_dir / filename
                 relative_path, image_data_base64 = create_placeholder_image(
@@ -425,7 +425,7 @@ def run_research(keywords: str, limit: int = 50) -> Dict[str, Any]:
         else:
             # No image URL - create placeholder
             if not image_url:
-                print(f"[Research] No image URL found, creating placeholder...")
+                print("[Research] No image URL found, creating placeholder...")
             filename = f"{listing_id}_{safe_title}_placeholder.jpg"
             placeholder_path = images_dir / filename
             relative_path, image_data_base64 = create_placeholder_image(
