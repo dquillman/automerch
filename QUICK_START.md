@@ -126,3 +126,6 @@ curl http://localhost:8000/api/drafts/queue
 4. Integrate with your existing product management UI
 
 
+
+
+

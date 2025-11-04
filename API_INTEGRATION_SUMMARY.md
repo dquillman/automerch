@@ -163,3 +163,6 @@ print(f"Variant ID: {result['variant_id']}")
 
 **Status:** ✅ Both APIs fully integrated and ready to use!
 
+
+
+

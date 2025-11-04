@@ -98,3 +98,6 @@ def product_to_etsy(sku: str = Form(...)):
 - **OAuth not working:** Check `.env` has correct `ETSY_CLIENT_ID` and `ETSY_CLIENT_SECRET`
 
 
+
+
+

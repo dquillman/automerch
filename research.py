@@ -270,8 +270,11 @@ def run_research(keywords: str, limit: int = 50) -> Dict[str, Any]:
         images = []
         image_url = None
         
+        print(f"[Research] Processing listing {l.get('listing_id')}: {l.get('title', 'N/A')[:50]}")
+        
         # Try multiple possible image field locations
         if l.get("images") and isinstance(l["images"], list) and len(l["images"]) > 0:
+            print(f"[Research] Found images array with {len(l['images'])} items")
             # List of image objects
             for img in l["images"]:
                 if isinstance(img, dict):
@@ -307,6 +310,8 @@ def run_research(keywords: str, limit: int = 50) -> Dict[str, Any]:
                 image_url = images[0].get("url")
             elif isinstance(images[0], str):
                 image_url = images[0]
+        
+        print(f"[Research] Extracted image_url: {image_url[:80] if image_url else 'None'}...")
         
         # Download and store primary image for image-to-image generation
         local_image_path = None
@@ -395,7 +400,7 @@ def run_research(keywords: str, limit: int = 50) -> Dict[str, Any]:
                     
                     # Save image locally
                     local_image_path.write_bytes(response.content)
-                    print(f"[Research] Saved image: {local_image_path} ({len(response.content)} bytes)")
+                    print(f"[Research] ✅ Saved image: {local_image_path} ({len(response.content)} bytes)")
                     
                     # Convert to base64 for API
                     image_data_base64 = base64.b64encode(response.content).decode('utf-8')
@@ -409,9 +414,10 @@ def run_research(keywords: str, limit: int = 50) -> Dict[str, Any]:
                         relative_path = str(local_image_path)
                 else:
                     raise Exception(f"HTTP {response.status_code}")
-            except Exception:
-                # If download fails, create placeholder image
-                print("[Research] Download failed, creating placeholder image...")
+            except Exception as e:
+                # If download fails, log the error and create placeholder image
+                print(f"[Research] ⚠️ Download failed: {str(e)}")
+                print("[Research] Creating placeholder image...")
                 filename = f"{listing_id}_{safe_title}_placeholder.jpg"
                 placeholder_path = images_dir / filename
                 relative_path, image_data_base64 = create_placeholder_image(
@@ -422,10 +428,17 @@ def run_research(keywords: str, limit: int = 50) -> Dict[str, Any]:
                 if relative_path:
                     local_image_path = placeholder_path
                     print(f"[Research] Created placeholder: {local_image_path}")
+                else:
+                    print(f"[Research] ❌ Failed to create placeholder image")
+                    relative_path = None
+                    image_data_base64 = None
         else:
             # No image URL - create placeholder
             if not image_url:
-                print("[Research] No image URL found, creating placeholder...")
+                print(f"[Research] ⚠️ No image URL found for listing {listing_id}, creating placeholder...")
+                print(f"[Research] Listing data keys: {list(l.keys())}")
+                if l.get("images"):
+                    print(f"[Research] Images field type: {type(l['images'])}, value: {l['images']}")
             filename = f"{listing_id}_{safe_title}_placeholder.jpg"
             placeholder_path = images_dir / filename
             relative_path, image_data_base64 = create_placeholder_image(
@@ -436,6 +449,10 @@ def run_research(keywords: str, limit: int = 50) -> Dict[str, Any]:
             if relative_path:
                 local_image_path = placeholder_path
                 print(f"[Research] Created placeholder: {local_image_path}")
+            else:
+                print(f"[Research] ❌ Failed to create placeholder image")
+                relative_path = None
+                image_data_base64 = None
         
         # Extract price amount
         price_obj = l.get("price")

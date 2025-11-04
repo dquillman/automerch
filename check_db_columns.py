@@ -17,3 +17,6 @@ with engine.connect() as conn:
     else:
         print("  ✅ All required columns present!")
 
+
+
+

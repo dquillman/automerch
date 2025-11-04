@@ -25,3 +25,6 @@ class Product(SQLModel, table=True):
     tags: Optional[str] = None  # Comma-separated tags
 
 
+
+
+

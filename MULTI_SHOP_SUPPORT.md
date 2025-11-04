@@ -160,3 +160,6 @@ The `EtsyClient` dependency automatically:
 - Tokens can be manually refreshed via `/auth/etsy/refresh`
 - Deleting a shop also removes its OAuth tokens
 
+
+
+

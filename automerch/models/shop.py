@@ -19,3 +19,6 @@ class EtsyShop(SQLModel, table=True):
     shop_url: Optional[str] = None
     description: Optional[str] = None
 
+
+
+
