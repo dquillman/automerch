@@ -185,28 +185,107 @@
                 const response = await fetch('/api/products/printful?limit=50');
                 const data = await response.json();
                 
+                // Check for API errors
+                if (!response.ok) {
+                    throw new Error(data.detail || `HTTP ${response.status}`);
+                }
+                
+                // Check for error in response
+                if (data.error) {
+                    // Special handling for store type mismatch
+                    if (data.error_type === 'store_type_mismatch' || data.error.includes('Manual Order / API platform')) {
+                        container.innerHTML = `
+                            <div style="padding: 30px; background: #fff3cd; border: 2px solid #ffc107; border-radius: 8px; color: #856404;">
+                                <div style="font-size: 48px; margin-bottom: 16px; text-align: center;">⚠️</div>
+                                <h3 style="margin-bottom: 16px; color: #856404;" class="dark-text">Printful Store Type Mismatch</h3>
+                                <p style="margin-bottom: 16px; line-height: 1.6;">
+                                    Your Printful store is connected to a <strong>marketplace</strong> (like Etsy) rather than being a <strong>Manual Order store</strong>.
+                                </p>
+                                <p style="margin-bottom: 20px; line-height: 1.6;">
+                                    The Printful API endpoint for listing products only works with Manual Order stores. 
+                                    Products synced to marketplaces are managed through the marketplace integration.
+                                </p>
+                                <div style="background: #fff; padding: 16px; border-radius: 4px; margin-bottom: 16px;">
+                                    <strong style="color: #856404;">What this means:</strong>
+                                    <ul style="margin: 8px 0 0 20px; line-height: 1.8;">
+                                        <li>Your products are synced through your marketplace (Etsy)</li>
+                                        <li>You can create products using the "Create Product" tab above</li>
+                                        <li>To view marketplace-synced products, check your Printful dashboard</li>
+                                    </ul>
+                                </div>
+                                <div style="text-align: center;">
+                                    <a href="https://www.printful.com/dashboard/stores" target="_blank" 
+                                       style="display: inline-block; padding: 10px 20px; background: #007bff; color: white; 
+                                              text-decoration: none; border-radius: 4px; margin-right: 10px;">
+                                        📊 Open Printful Dashboard
+                                    </a>
+                                    <button class="btn-primary" onclick="switchTab('create'); event.target.closest('.tab').classList.add('active');">
+                                        ➕ Create Product Instead
+                                    </button>
+                                </div>
+                            </div>
+                        `;
+                    } else {
+                        container.innerHTML = `
+                            <div style="padding: 20px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; color: #721c24;">
+                                <strong>⚠️ Error loading Printful products:</strong><br>
+                                ${data.error}<br><br>
+                                <small>This might be due to API authentication issues or the Printful store being empty.</small>
+                            </div>
+                        `;
+                    }
+                    return;
+                }
+                
                 if (data.products && data.products.length > 0) {
+                    const sourceMessage = data.source === 'etsy' ? 
+                        `<div style="padding: 12px; background: #d1ecf1; border: 1px solid #bee5eb; border-radius: 4px; margin-bottom: 16px; color: #0c5460;">
+                            <strong>ℹ️ Note:</strong> ${data.message || 'Products fetched from Etsy (your Printful store is marketplace-connected)'}
+                        </div>` : '';
+                    
                     container.innerHTML = `
+                        ${sourceMessage}
                         <div style="margin-bottom: 16px; color: #666;">
-                            Showing ${data.products.length} of ${data.total} products
+                            Showing ${data.products.length} of ${data.total || data.products.length} products
                         </div>
                         <div class="product-grid">
                             ${data.products.map(p => `
                                 <div class="product-card">
-                                    ${p.thumbnail ? `<img src="${p.thumbnail}" alt="${p.name}">` : '<div style="height: 200px; background: #ddd; display: flex; align-items: center; justify-content: center; color: #999;">No Image</div>'}
+                                    ${p.thumbnail ? `<img src="${p.thumbnail}" alt="${p.name || 'Product'}" onerror="this.onerror=null; this.parentElement.querySelector('.no-img').style.display='flex';">` : ''}
+                                    <div class="no-img" style="display: ${p.thumbnail ? 'none' : 'flex'}; height: 200px; background: #ddd; align-items: center; justify-content: center; color: #999;">No Image</div>
                                     <h3>${p.name || 'Unnamed Product'}</h3>
-                                    <div class="sku">ID: ${p.id}</div>
+                                    <div class="sku">ID: ${p.id || 'N/A'}</div>
                                     ${p.external_id ? `<div class="sku">SKU: ${p.external_id}</div>` : ''}
-                                    ${p.sync_variants_count ? `<div style="margin-top: 8px; color: #666; font-size: 12px;">${p.sync_variants_count} variant(s)</div>` : ''}
+                                    ${p.etsy_listing_id ? `<div class="sku" style="color: #007bff;">Etsy: ${p.etsy_listing_id}</div>` : ''}
+                                    ${p.price ? `<div style="margin-top: 8px; color: #007bff; font-weight: 600;">$${p.price.toFixed(2)}</div>` : ''}
+                                    ${p.variants_count ? `<div style="margin-top: 8px; color: #666; font-size: 12px;">${p.variants_count} variant(s)</div>` : ''}
                                 </div>
                             `).join('')}
                         </div>
                     `;
                 } else {
-                    container.innerHTML = '<div class="loading">No Printful products found. Create your first product!</div>';
+                    container.innerHTML = `
+                        <div style="padding: 40px; text-align: center;">
+                            <div style="font-size: 48px; margin-bottom: 16px;">📦</div>
+                            <h3 style="margin-bottom: 8px;" class="dark-text">No Printful products found</h3>
+                            <p style="color: #666; margin-bottom: 20px;">
+                                Your Printful store is empty. Create your first product using the "Create Product" tab above!
+                            </p>
+                            <button class="btn-primary" onclick="switchTab('create'); event.target.closest('.tab').classList.add('active');">
+                                ➕ Create Product
+                            </button>
+                        </div>
+                    `;
                 }
             } catch (error) {
-                container.innerHTML = `<div class="loading" style="color: #dc3545;">Error loading products: ${error.message}</div>`;
+                console.error('Error loading Printful products:', error);
+                container.innerHTML = `
+                    <div style="padding: 20px; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 8px; color: #721c24;">
+                        <strong>⚠️ Error loading products:</strong><br>
+                        ${error.message}<br><br>
+                        <small>Check the browser console for more details.</small>
+                    </div>
+                `;
             }
         }
 

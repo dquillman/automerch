@@ -1,10 +1,12 @@
 """Product management routes."""
 
+import logging
 from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 from pydantic import BaseModel
 
 from ...core.db import get_session
+from ...core.settings import settings
 from ...models import Product
 from ...api.dependencies import PrintfulClientDep
 
@@ -101,40 +103,6 @@ def list_products(skip: int = 0, limit: int = 100):
         raise HTTPException(status_code=500, detail=f"Failed to list products: {str(e)}")
 
 
-@router.get("/{sku}")
-def get_product(sku: str):
-    """Get product by SKU.
-    
-    Args:
-        sku: Product SKU
-        
-    Returns:
-        Product details
-    """
-    try:
-        with next(get_session()) as session:
-            product = session.get(Product, sku)
-            if not product:
-                raise HTTPException(status_code=404, detail="Product not found")
-            
-            return {
-                "sku": product.sku,
-                "name": product.name,
-                "description": product.description,
-                "price": product.price,
-                "cost": product.cost,
-                "taxonomy_id": product.taxonomy_id,
-                "tags": product.tags,
-                "thumbnail_url": product.thumbnail_url,
-                "etsy_listing_id": product.etsy_listing_id,
-                "created_at": product.created_at.isoformat() if product.created_at else None
-            }
-    except HTTPException:
-        raise
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get product: {str(e)}")
-
-
 class PrintfulProductRequest(BaseModel):
     """Printful product creation request."""
     sku: str
@@ -203,64 +171,6 @@ def create_printful_product(
         raise HTTPException(status_code=500, detail=f"Failed to create Printful product: {str(e)}")
 
 
-@router.get("/printful")
-def list_printful_products(
-    limit: int = 20,
-    offset: int = 0,
-    printful_client: PrintfulClientDep = None
-):
-    """List all Printful products in your store.
-    
-    Args:
-        limit: Maximum number of products to return
-        offset: Number of products to skip
-        printful_client: Injected PrintfulClient dependency
-        
-    Returns:
-        List of Printful products with pagination info
-    """
-    try:
-        if printful_client is None:
-            from ...api.dependencies import get_printful_client
-            printful_client = get_printful_client()
-        
-        result = printful_client.list_products(limit=limit, offset=offset)
-        
-        return {
-            "products": result.get("products", []),
-            "total": result.get("total", 0),
-            "limit": result.get("limit", limit),
-            "offset": result.get("offset", offset)
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to list Printful products: {str(e)}")
-
-
-@router.get("/printful/{product_id}")
-def get_printful_product(
-    product_id: int,
-    printful_client: PrintfulClientDep = None
-):
-    """Get Printful product details by ID.
-    
-    Args:
-        product_id: Printful sync product ID
-        printful_client: Injected PrintfulClient dependency
-        
-    Returns:
-        Printful product details
-    """
-    try:
-        if printful_client is None:
-            from ...api.dependencies import get_printful_client
-            printful_client = get_printful_client()
-        
-        product = printful_client.get_product(product_id)
-        return product
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to get Printful product: {str(e)}")
-
-
 @router.get("/printful/integration")
 def get_printful_integration():
     """Get integration status - which local products are synced to Printful.
@@ -311,5 +221,200 @@ def get_printful_integration():
             }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to get integration status: {str(e)}")
+
+
+@router.get("/printful")
+def list_printful_products(
+    limit: int = 20,
+    offset: int = 0,
+    printful_client: PrintfulClientDep = None
+):
+    """List all Printful products in your store.
+    
+    For marketplace-connected stores (like Etsy), falls back to fetching from Etsy.
+    
+    Args:
+        limit: Maximum number of products to return
+        offset: Number of products to skip
+        printful_client: Injected PrintfulClient dependency
+        
+    Returns:
+        List of Printful products with pagination info
+    """
+    try:
+        if printful_client is None:
+            from ...api.dependencies import get_printful_client
+            printful_client = get_printful_client()
+        
+        result = printful_client.list_products(limit=limit, offset=offset)
+        
+        # Check if Printful API failed due to marketplace store type
+        if result.get("error_type") == "store_type_mismatch" or (
+            result.get("error") and "Manual Order / API platform" in result.get("error", "")
+        ):
+            # Fallback: Fetch from Etsy instead (since products are synced there)
+            logger = logging.getLogger(__name__)
+            logger.info("Printful store is marketplace-connected. Fetching products from Etsy instead...")
+            
+            try:
+                from ...api.dependencies import get_etsy_client
+                from ...core.db import get_session
+                from sqlmodel import select
+                
+                etsy_client = get_etsy_client()
+                shop_id = etsy_client.shop_id or settings.ETSY_SHOP_ID
+                
+                if not shop_id:
+                    # Try to get shop_id from database
+                    with next(get_session()) as session:
+                        from ...models.shop import EtsyShop
+                        default_shop = session.exec(
+                            select(EtsyShop).where(EtsyShop.is_default == True)
+                        ).first()
+                        if default_shop:
+                            shop_id = default_shop.shop_id
+                            etsy_client.shop_id = shop_id
+                
+                if shop_id:
+                    # Fetch shop listings from Etsy
+                    response = etsy_client._request(
+                        "GET",
+                        f"/shops/{shop_id}/listings/active",
+                        params={"limit": limit, "offset": offset}
+                    )
+                    etsy_data = response.json()
+                    
+                    # Handle different response formats
+                    if isinstance(etsy_data, dict) and "results" in etsy_data:
+                        listings = etsy_data.get("results", [])
+                    elif isinstance(etsy_data, list):
+                        listings = etsy_data
+                    else:
+                        listings = []
+                    
+                    # Convert Etsy listings to Printful product format
+                    products = []
+                    for listing in listings:
+                        images = listing.get("images", [])
+                        thumbnail = None
+                        if images:
+                            # Try to get best image URL
+                            img = images[0]
+                            thumbnail = img.get("url_570xN") or img.get("url_fullxfull") or img.get("url")
+                        
+                        products.append({
+                            "id": listing.get("listing_id"),
+                            "name": listing.get("title", "Unnamed Product"),
+                            "thumbnail": thumbnail,
+                            "external_id": listing.get("sku") or f"ETSY-{listing.get('listing_id')}",
+                            "variants_count": 1,  # Etsy listings typically have 1 variant
+                            "etsy_listing_id": str(listing.get("listing_id", "")),
+                            "price": listing.get("price", {}).get("amount", 0) / 100 if listing.get("price") else None
+                        })
+                    
+                    return {
+                        "products": products,
+                        "total": len(products),
+                        "limit": limit,
+                        "offset": offset,
+                        "source": "etsy",
+                        "message": "Products fetched from Etsy (your Printful store is marketplace-connected)"
+                    }
+                else:
+                    return {
+                        "products": [],
+                        "total": 0,
+                        "limit": limit,
+                        "offset": offset,
+                        "error": "Could not fetch products. Shop ID not found. Please complete OAuth setup.",
+                        "error_type": "missing_shop_id"
+                    }
+            except Exception as etsy_error:
+                # If Etsy fallback also fails, return the original error with helpful message
+                return {
+                    "products": [],
+                    "total": 0,
+                    "limit": limit,
+                    "offset": offset,
+                    "error": f"Printful API doesn't support marketplace stores. Etsy fallback also failed: {str(etsy_error)}",
+                    "error_type": "store_type_mismatch"
+                }
+        
+        # Include error in response if present (but don't raise exception)
+        response_data = {
+            "products": result.get("products", []),
+            "total": result.get("total", 0),
+            "limit": result.get("limit", limit),
+            "offset": result.get("offset", offset)
+        }
+        
+        if result.get("error"):
+            response_data["error"] = result.get("error")
+            response_data["error_type"] = result.get("error_type")
+        
+        return response_data
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list Printful products: {str(e)}")
+
+
+@router.get("/printful/{product_id}")
+def get_printful_product(
+    product_id: int,
+    printful_client: PrintfulClientDep = None
+):
+    """Get Printful product details by ID.
+    
+    Args:
+        product_id: Printful sync product ID
+        printful_client: Injected PrintfulClient dependency
+        
+    Returns:
+        Printful product details
+    """
+    try:
+        if printful_client is None:
+            from ...api.dependencies import get_printful_client
+            printful_client = get_printful_client()
+        
+        product = printful_client.get_product(product_id)
+        return product
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get Printful product: {str(e)}")
+
+
+@router.get("/{sku}")
+def get_product(sku: str):
+    """Get product by SKU.
+    
+    Args:
+        sku: Product SKU
+        
+    Returns:
+        Product details
+    """
+    try:
+        with next(get_session()) as session:
+            product = session.get(Product, sku)
+            if not product:
+                raise HTTPException(status_code=404, detail="Product not found")
+            
+            return {
+                "sku": product.sku,
+                "name": product.name,
+                "description": product.description,
+                "price": product.price,
+                "cost": product.cost,
+                "taxonomy_id": product.taxonomy_id,
+                "tags": product.tags,
+                "thumbnail_url": product.thumbnail_url,
+                "etsy_listing_id": product.etsy_listing_id,
+                "created_at": product.created_at.isoformat() if product.created_at else None
+            }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get product: {str(e)}")
+
+
 
 

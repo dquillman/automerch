@@ -1,12 +1,9 @@
 steps:
   # Build the container image
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['build', '-t', 'gcr.io/$PROJECT_ID/automerch:$COMMIT_SHA', '-t', 'gcr.io/$PROJECT_ID/automerch:latest', '.']
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/automerch:latest', '.']
   
   # Push the container image to Container Registry
-  - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/automerch:$COMMIT_SHA']
-  
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/automerch:latest']
   
@@ -18,7 +15,7 @@ steps:
       - 'deploy'
       - 'automerch'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/automerch:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/automerch:latest'
       - '--region'
       - 'us-central1'
       - '--platform'
@@ -32,9 +29,10 @@ steps:
       - '300'
       - '--max-instances'
       - '10'
+      - '--set-env-vars'
+      - 'AUTOMERCH_DRY_RUN=false,ETSY_REDIRECT_URI=https://automerch-715156784717.us-central1.run.app/auth/etsy/callback,PRINTFUL_API_KEY=7IAG3tMfxJhxWb06c07ao5OWKkIQxLg2F3KKEBTf'
 
 images:
-  - 'gcr.io/$PROJECT_ID/automerch:$COMMIT_SHA'
   - 'gcr.io/$PROJECT_ID/automerch:latest'
 
 options:

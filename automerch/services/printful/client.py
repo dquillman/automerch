@@ -368,6 +368,7 @@ class PrintfulClient:
             Dictionary with 'products' list and 'total' count
         """
         if settings.AUTOMERCH_DRY_RUN:
+            logger.info("[DRY RUN] Returning mock Printful products")
             return {
                 "products": [
                     {
@@ -378,22 +379,92 @@ class PrintfulClient:
                         "variants_count": 1
                     }
                 ],
-                "total": 1
+                "total": 1,
+                "limit": limit,
+                "offset": offset
             }
         
         params = {"limit": limit, "offset": offset}
-        response = self._request("GET", "/store/products", params=params)
-        result = response.json().get("result", {})
+        logger.info(f"Fetching Printful products: limit={limit}, offset={offset}")
         
-        products = result.get("data", [])
-        total = result.get("paging", {}).get("total", len(products))
-        
-        return {
-            "products": products,
-            "total": total,
-            "limit": limit,
-            "offset": offset
-        }
+        try:
+            response = self._request("GET", "/store/products", params=params)
+            json_response = response.json()
+            logger.debug(f"Printful API response: {json_response}")
+            
+            result = json_response.get("result", {})
+            
+            # Printful API returns products in different structures depending on version
+            # Try both 'data' array and direct array
+            if isinstance(result, list):
+                products = result
+            elif "data" in result:
+                products = result.get("data", [])
+            else:
+                # Sometimes it's just the sync_product objects
+                products = result.get("items", []) if "items" in result else []
+            
+            # Try to get total from paging, or count products
+            if "paging" in result:
+                total = result.get("paging", {}).get("total", len(products))
+            else:
+                total = len(products)
+            
+            logger.info(f"Found {len(products)} Printful products (total: {total})")
+            
+            # Normalize product structure for UI
+            normalized_products = []
+            for p in products:
+                # Handle both sync_product structure and direct product structure
+                if isinstance(p, dict):
+                    if "sync_product" in p:
+                        sync_product = p.get("sync_product", {})
+                        normalized_products.append({
+                            "id": sync_product.get("id"),
+                            "name": sync_product.get("name"),
+                            "thumbnail": sync_product.get("thumbnail"),
+                            "external_id": sync_product.get("external_id"),
+                            "variants_count": len(p.get("sync_variants", []))
+                        })
+                    else:
+                        # Direct product structure
+                        normalized_products.append({
+                            "id": p.get("id"),
+                            "name": p.get("name"),
+                            "thumbnail": p.get("thumbnail"),
+                            "external_id": p.get("external_id"),
+                            "variants_count": p.get("sync_variants_count") or len(p.get("sync_variants", []))
+                        })
+            
+            return {
+                "products": normalized_products,
+                "total": total,
+                "limit": limit,
+                "offset": offset
+            }
+        except RuntimeError as e:
+            error_str = str(e)
+            # Check if it's the "Manual Order / API platform" error
+            if "Manual Order / API platform" in error_str or "400" in error_str:
+                logger.warning("Printful store is not on Manual Order / API platform. Products must be synced via marketplace integrations.")
+                # Return empty result with helpful message
+                return {
+                    "products": [],
+                    "total": 0,
+                    "limit": limit,
+                    "offset": offset,
+                    "error": "Your Printful store is connected to a marketplace (like Etsy) rather than being a Manual Order store. To view products, you need to sync them from your marketplace integration or switch your Printful store type in Printful settings.",
+                    "error_type": "store_type_mismatch"
+                }
+            logger.error(f"Error fetching Printful products: {e}", exc_info=True)
+            # Return empty result instead of raising, so UI can show message
+            return {
+                "products": [],
+                "total": 0,
+                "limit": limit,
+                "offset": offset,
+                "error": str(e)
+            }
     
     def delete_product(self, product_id: int) -> bool:
         """Delete a sync product.
