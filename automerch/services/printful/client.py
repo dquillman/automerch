@@ -357,6 +357,44 @@ class PrintfulClient:
         
         return result.get("data", [])
     
+    def list_products(self, limit: int = 20, offset: int = 0) -> dict[str, Any]:
+        """List all sync products in Printful store.
+        
+        Args:
+            limit: Maximum number of products to return (default: 20)
+            offset: Number of products to skip (default: 0)
+            
+        Returns:
+            Dictionary with 'products' list and 'total' count
+        """
+        if settings.AUTOMERCH_DRY_RUN:
+            return {
+                "products": [
+                    {
+                        "id": 12345,
+                        "name": "Dry Run Product",
+                        "thumbnail": "https://example.com/image.jpg",
+                        "external_id": "DRY-RUN-001",
+                        "variants_count": 1
+                    }
+                ],
+                "total": 1
+            }
+        
+        params = {"limit": limit, "offset": offset}
+        response = self._request("GET", "/store/products", params=params)
+        result = response.json().get("result", {})
+        
+        products = result.get("data", [])
+        total = result.get("paging", {}).get("total", len(products))
+        
+        return {
+            "products": products,
+            "total": total,
+            "limit": limit,
+            "offset": offset
+        }
+    
     def delete_product(self, product_id: int) -> bool:
         """Delete a sync product.
         

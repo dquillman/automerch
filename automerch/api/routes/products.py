@@ -1,6 +1,6 @@
 """Product management routes."""
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from typing import Optional
 from pydantic import BaseModel
 
@@ -201,4 +201,115 @@ def create_printful_product(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to create Printful product: {str(e)}")
+
+
+@router.get("/printful")
+def list_printful_products(
+    limit: int = 20,
+    offset: int = 0,
+    printful_client: PrintfulClientDep = None
+):
+    """List all Printful products in your store.
+    
+    Args:
+        limit: Maximum number of products to return
+        offset: Number of products to skip
+        printful_client: Injected PrintfulClient dependency
+        
+    Returns:
+        List of Printful products with pagination info
+    """
+    try:
+        if printful_client is None:
+            from ...api.dependencies import get_printful_client
+            printful_client = get_printful_client()
+        
+        result = printful_client.list_products(limit=limit, offset=offset)
+        
+        return {
+            "products": result.get("products", []),
+            "total": result.get("total", 0),
+            "limit": result.get("limit", limit),
+            "offset": result.get("offset", offset)
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to list Printful products: {str(e)}")
+
+
+@router.get("/printful/{product_id}")
+def get_printful_product(
+    product_id: int,
+    printful_client: PrintfulClientDep = None
+):
+    """Get Printful product details by ID.
+    
+    Args:
+        product_id: Printful sync product ID
+        printful_client: Injected PrintfulClient dependency
+        
+    Returns:
+        Printful product details
+    """
+    try:
+        if printful_client is None:
+            from ...api.dependencies import get_printful_client
+            printful_client = get_printful_client()
+        
+        product = printful_client.get_product(product_id)
+        return product
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get Printful product: {str(e)}")
+
+
+@router.get("/printful/integration")
+def get_printful_integration():
+    """Get integration status - which local products are synced to Printful.
+    
+    Returns:
+        List of local products with their Printful sync status
+    """
+    try:
+        with next(get_session()) as session:
+            from sqlmodel import select
+            # Get all products that have Printful variant IDs
+            stmt = select(Product).where(Product.printful_variant_id.isnot(None))
+            synced_products = session.exec(stmt).all()
+            
+            # Get all products for comparison
+            all_products = session.exec(select(Product)).all()
+            
+            synced = [
+                {
+                    "sku": p.sku,
+                    "name": p.name,
+                    "price": p.price,
+                    "printful_variant_id": p.printful_variant_id,
+                    "thumbnail_url": p.thumbnail_url,
+                    "sync_status": "synced"
+                }
+                for p in synced_products
+            ]
+            
+            not_synced = [
+                {
+                    "sku": p.sku,
+                    "name": p.name,
+                    "price": p.price,
+                    "thumbnail_url": p.thumbnail_url,
+                    "sync_status": "not_synced"
+                }
+                for p in all_products
+                if p.printful_variant_id is None
+            ]
+            
+            return {
+                "synced": synced,
+                "not_synced": not_synced,
+                "total_synced": len(synced),
+                "total_not_synced": len(not_synced),
+                "total_products": len(all_products)
+            }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get integration status: {str(e)}")
+
 
