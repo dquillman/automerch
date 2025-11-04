@@ -5,9 +5,24 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.exceptions import RequestValidationError
 import traceback
+from pathlib import Path
+import sys
 
 from .routes import auth, drafts, assets, ui, pages, research, products, image_generation, shops
 from ..core.db import init_db
+
+# Import version function
+# Add parent directory to path to access version.py
+current_file = Path(__file__).absolute()
+automerch_remote_dir = current_file.parent.parent.parent.parent
+sys.path.insert(0, str(automerch_remote_dir))
+
+try:
+    from version import get_version
+    APP_VERSION = get_version()
+except ImportError:
+    # Fallback if version.py not found
+    APP_VERSION = "1.0.0"
 
 # Initialize database on import
 try:
@@ -18,7 +33,7 @@ except Exception as e:
 app = FastAPI(
     title="AutoMerch Lite",
     description="Etsy drafts automation tool",
-    version="1.0.0",
+    version=APP_VERSION,
     swagger_ui_parameters={"defaultModelsExpandDepth": -1}
 )
 
@@ -46,7 +61,13 @@ app.include_router(shops.router)
 @app.get("/health")
 def health():
     """Health check endpoint."""
-    return {"ok": True, "status": "healthy"}
+    return {"ok": True, "status": "healthy", "version": APP_VERSION}
+
+
+@app.get("/version")
+def version():
+    """Get application version."""
+    return {"version": APP_VERSION}
 
 
 @app.on_event("startup")

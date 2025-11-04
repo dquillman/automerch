@@ -93,7 +93,10 @@
                 <a href="/products/create">Products</a>
                 <a href="/drafts">Drafts</a>
             </div>
-            <button onclick="toggleDarkMode()" id="dark-toggle" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🌙 Dark</button>
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <span style="color: #999; font-size: 12px; opacity: 0.7;">v<span id="app-version">-</span></span>
+                <button onclick="toggleDarkMode()" id="dark-toggle" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">🌙 Dark</button>
+            </div>
         </nav>
 
         <h1 style="margin-bottom: 24px; color: #333; transition: color 0.3s;" class="dark-text">🔍 Product Research</h1>
@@ -252,6 +255,20 @@
             const dataParam = encodeURIComponent(JSON.stringify(researchData));
             window.location.href = `/research/detail?keywords=${encodeURIComponent(researchData.keywords)}&data=${dataParam}`;
         }
+
+        // Load version
+        fetch('/version')
+            .then(r => r.json())
+            .then(data => {
+                const versionEl = document.getElementById('app-version');
+                if (versionEl && data.version) {
+                    versionEl.textContent = data.version;
+                }
+            })
+            .catch(() => {
+                const versionEl = document.getElementById('app-version');
+                if (versionEl) versionEl.textContent = '1.0.0';
+            });
 
         // Apply dark mode to text elements
         document.addEventListener('DOMContentLoaded', () => {

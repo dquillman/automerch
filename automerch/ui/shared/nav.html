@@ -14,8 +14,27 @@
             <a href="/settings" style="color: #ccc; text-decoration: none; padding: 8px 12px; border-radius: 4px; transition: background 0.2s;" onmouseover="this.style.background='#3d3d3d'" onmouseout="this.style.background='transparent'">Settings</a>
         </div>
     </div>
-    <button onclick="toggleDarkMode()" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;" id="nav-dark-toggle">🌙 Dark</button>
+    <div style="display: flex; align-items: center; gap: 16px;">
+        <span style="color: #999; font-size: 12px; opacity: 0.7;">v<span id="app-version">-</span></span>
+        <button onclick="toggleDarkMode()" style="background: #495057; color: #fff; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;" id="nav-dark-toggle">🌙 Dark</button>
+    </div>
 </nav>
+<script>
+    // Load version from API
+    fetch('/version')
+        .then(r => r.json())
+        .then(data => {
+            const versionEl = document.getElementById('app-version');
+            if (versionEl && data.version) {
+                versionEl.textContent = data.version;
+            }
+        })
+        .catch(() => {
+            // Fallback if API fails
+            const versionEl = document.getElementById('app-version');
+            if (versionEl) versionEl.textContent = '1.0.0';
+        });
+</script>
 
 <script>
 function toggleDarkMode() {
